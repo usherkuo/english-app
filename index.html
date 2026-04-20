@@ -1,0 +1,1391 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="英語學習">
+<meta name="theme-color" content="#13102B">
+<title>英語學習 App</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{
+  --p:#7C6FF7;--p2:#B8B0FF;--p3:rgba(124,111,247,.12);
+  --pk:#F72585;--tl:#00BBF9;--gn:#06D6A0;--og:#FF9E00;
+  --ok:#06D6A0;--err:#EF233C;
+  --bg:#F0EEFE;--bg2:#FAFAFF;
+  --text:#1A1830;--sub:#7B7A96;--line:#E5E2F8;
+  --card:#fff;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+
+/* ─── App shell ─── */
+.app{max-width:480px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;padding-bottom:calc(env(safe-area-inset-bottom) + 76px)}
+
+/* ─── HERO HEADER ─── */
+.hero{
+  position:relative;overflow:hidden;
+  padding:calc(env(safe-area-inset-top) + 16px) 20px 26px;
+  background:#13102B;
+  margin:-16px -16px 20px;
+}
+.hero-mesh{
+  position:absolute;inset:0;pointer-events:none;
+  background:
+    radial-gradient(ellipse 80% 70% at 10% 60%,rgba(124,111,247,.75) 0%,transparent 60%),
+    radial-gradient(ellipse 60% 60% at 88% 10%,rgba(247,37,133,.55) 0%,transparent 55%),
+    radial-gradient(ellipse 70% 50% at 55% 110%,rgba(0,187,249,.45) 0%,transparent 55%),
+    radial-gradient(ellipse 50% 40% at 75% 80%,rgba(6,214,160,.3) 0%,transparent 50%);
+  animation:meshAnim 8s ease-in-out infinite alternate;
+}
+@keyframes meshAnim{
+  0%{opacity:.9}
+  50%{opacity:1;filter:hue-rotate(15deg)}
+  100%{opacity:.85;filter:hue-rotate(-10deg)}
+}
+.hero-noise{
+  position:absolute;inset:0;pointer-events:none;opacity:.04;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+}
+.hero-content{position:relative;z-index:1}
+.hero-row{display:flex;align-items:center;justify-content:space-between}
+.hero-title{font-size:22px;font-weight:800;color:#fff;letter-spacing:-.4px}
+.hero-lv{
+  background:rgba(255,255,255,.15);backdrop-filter:blur(10px);
+  -webkit-backdrop-filter:blur(10px);
+  border:1px solid rgba(255,255,255,.2);
+  border-radius:20px;padding:5px 13px;font-size:12px;font-weight:700;color:#fff;
+}
+.hero-sub{font-size:12px;color:rgba(255,255,255,.65);margin-top:3px}
+.hero-stats{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+.stat-pill{
+  display:flex;align-items:center;gap:6px;
+  background:rgba(255,255,255,.1);backdrop-filter:blur(12px);
+  -webkit-backdrop-filter:blur(12px);
+  border:1px solid rgba(255,255,255,.15);
+  border-radius:20px;padding:5px 12px;font-size:12px;font-weight:600;color:#fff;
+}
+
+/* ─── Nav ─── */
+.bnav{
+  position:fixed;bottom:0;left:50%;transform:translateX(-50%);
+  width:100%;max-width:480px;
+  background:rgba(255,255,255,.85);
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  border-top:1px solid rgba(124,111,247,.12);
+  display:flex;z-index:200;padding-bottom:env(safe-area-inset-bottom);
+}
+.ni{flex:1;display:flex;flex-direction:column;align-items:center;padding:9px 4px 7px;border:none;background:none;cursor:pointer;font-size:10px;color:var(--sub);transition:color .2s;letter-spacing:.1px}
+.ni.on{color:var(--p);font-weight:700}
+.ni-ico{font-size:20px;margin-bottom:2px;transition:transform .2s}
+.ni.on .ni-ico{transform:scale(1.15)}
+
+/* ─── Screens ─── */
+.sc{display:none;flex:1;padding:16px}
+.sc.on{display:block}
+/* Sub-screens: push content below Dynamic Island / status bar */
+.sc:not(#sc-home){padding-top:calc(env(safe-area-inset-top) + 16px)}
+
+/* ─── Premium Card ─── */
+.card{
+  background:var(--card);
+  border-radius:22px;padding:20px;margin-bottom:13px;
+  box-shadow:0 2px 0 rgba(0,0,0,.03),0 6px 24px rgba(107,92,231,.1),0 20px 48px rgba(107,92,231,.05);
+  position:relative;overflow:hidden;
+}
+.card::after{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent 5%,rgba(124,111,247,.25) 50%,transparent 95%)}
+.card-t{font-size:15px;font-weight:700;margin-bottom:10px;letter-spacing:-.2px}
+
+/* ─── Section title ─── */
+.sec{font-size:17px;font-weight:800;margin-bottom:12px;letter-spacing:-.3px}
+
+/* ─── Module cards ─── */
+.modg{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.modc{
+  border-radius:20px;padding:20px;display:flex;flex-direction:column;
+  align-items:flex-start;cursor:pointer;
+  transition:transform .18s ease,box-shadow .18s ease;
+  border:none;position:relative;overflow:hidden;
+}
+.modc:active{transform:scale(.96)}
+.modc-v{background:linear-gradient(145deg,#7C6FF7,#5B4EE7);box-shadow:0 8px 28px rgba(124,111,247,.38)}
+.modc-l{background:linear-gradient(145deg,#0EA5E9,#7C3AED);box-shadow:0 8px 28px rgba(14,165,233,.38)}
+.modc-s{background:linear-gradient(145deg,#F72585,#B5179E);box-shadow:0 8px 28px rgba(247,37,133,.38)}
+.modc-p{background:linear-gradient(145deg,#06D6A0,#0582CA);box-shadow:0 8px 28px rgba(6,214,160,.35)}
+.modc-shine{
+  position:absolute;top:-30%;right:-20%;width:80%;height:80%;
+  background:radial-gradient(circle,rgba(255,255,255,.18) 0%,transparent 65%);
+  pointer-events:none;border-radius:50%;
+}
+.modc-ico{font-size:30px;margin-bottom:10px;filter:drop-shadow(0 2px 6px rgba(0,0,0,.2))}
+.modc-nm{font-size:14px;font-weight:700;color:#fff;margin-bottom:3px;letter-spacing:-.2px}
+.modc-ds{font-size:11px;color:rgba(255,255,255,.7)}
+.modc-arr{position:absolute;bottom:16px;right:16px;color:rgba(255,255,255,.5);font-size:16px}
+
+/* ─── Daily lesson card ─── */
+.dl-card{
+  border-radius:22px;padding:20px;margin-bottom:16px;
+  background:linear-gradient(145deg,#1E1B4B,#3730A3);
+  box-shadow:0 10px 36px rgba(55,48,163,.4);
+  cursor:pointer;position:relative;overflow:hidden;
+}
+.dl-card-glow{position:absolute;inset:0;background:radial-gradient(ellipse 60% 80% at 80% 20%,rgba(247,37,133,.3) 0%,transparent 60%);pointer-events:none}
+.dl-card-content{position:relative;z-index:1}
+.dl-label{font-size:11px;font-weight:600;color:rgba(255,255,255,.6);letter-spacing:.8px;text-transform:uppercase;margin-bottom:5px}
+.dl-title{font-size:20px;font-weight:800;color:#fff;letter-spacing:-.3px}
+.dl-sub{font-size:12px;color:rgba(255,255,255,.55);margin-top:4px}
+.dl-steps{display:flex;gap:5px;margin-top:14px;flex-wrap:wrap}
+.step-d{height:5px;flex:1;min-width:16px;border-radius:3px;background:rgba(255,255,255,.2);transition:all .35s ease}
+.step-d.done{background:rgba(255,255,255,.85)}
+.step-d.curr{background:#fff;flex:1.6;box-shadow:0 0 8px rgba(255,255,255,.6)}
+
+/* ─── Daily word card ─── */
+.dw-card{
+  background:linear-gradient(145deg,#13102B,#2D2760);
+  border-radius:22px;padding:20px;
+  box-shadow:0 8px 28px rgba(19,16,43,.35);
+  position:relative;overflow:hidden;
+}
+.dw-glow{position:absolute;inset:0;background:radial-gradient(ellipse 50% 60% at 100% 0%,rgba(124,111,247,.4) 0%,transparent 60%);pointer-events:none}
+.dw-content{position:relative;z-index:1;display:flex;align-items:center;gap:14px}
+.dw-word{font-size:28px;font-weight:800;color:#fff;letter-spacing:-.5px}
+.dw-ph{font-size:13px;color:rgba(255,255,255,.5);margin:2px 0}
+.dw-zh{font-size:14px;color:rgba(255,255,255,.7)}
+.dw-ex{font-size:12px;color:rgba(255,255,255,.45);margin-top:5px;line-height:1.5}
+
+/* ─── Sound button ─── */
+.snd{
+  background:linear-gradient(145deg,var(--p),var(--p2));
+  border:none;border-radius:50%;width:50px;height:50px;font-size:19px;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  transition:transform .15s,box-shadow .15s;
+  box-shadow:0 4px 16px rgba(124,111,247,.4);flex-shrink:0;
+}
+.snd:active{transform:scale(.86);box-shadow:0 2px 8px rgba(124,111,247,.3)}
+.snd-dark{background:rgba(255,255,255,.12);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.2)}
+
+/* ─── Flashcard ─── */
+.fcard{
+  background:#fff;border-radius:24px;padding:36px 22px;
+  text-align:center;min-height:210px;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  box-shadow:0 2px 0 rgba(0,0,0,.03),0 8px 32px rgba(107,92,231,.14),0 28px 60px rgba(107,92,231,.07);
+  cursor:pointer;position:relative;overflow:hidden;transition:transform .12s;
+}
+.fcard::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:5px;
+  background:linear-gradient(90deg,#7C6FF7,#F72585,#00BBF9);
+}
+.fcard:active{transform:scale(.98)}
+.fc-srs{
+  position:absolute;top:14px;right:14px;
+  background:var(--p3);color:var(--p);
+  font-size:11px;font-weight:700;padding:3px 9px;border-radius:10px;
+}
+.fc-word{font-size:38px;font-weight:800;color:var(--p);letter-spacing:-.5px;margin-bottom:4px}
+.fc-ph{font-size:14px;color:var(--sub);margin-bottom:12px}
+.fc-zh{font-size:24px;color:var(--text);font-weight:700}
+.fc-ex{
+  font-size:13px;color:var(--sub);margin-top:12px;
+  padding:11px 14px;background:var(--bg);border-radius:12px;
+  line-height:1.6;text-align:left;width:100%;
+}
+.fc-hint{font-size:12px;color:rgba(124,111,247,.5);margin-top:14px}
+
+/* ─── Buttons ─── */
+.btn{
+  border:none;border-radius:14px;padding:13px 18px;font-size:15px;font-weight:700;
+  cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;
+  justify-content:center;gap:7px;letter-spacing:-.1px;
+}
+.btn:active{transform:scale(.96)}
+.btn-p{
+  background:linear-gradient(135deg,#7C6FF7,#5B52E0);color:#fff;
+  width:100%;padding:16px;font-size:16px;border-radius:16px;
+  box-shadow:0 4px 20px rgba(124,111,247,.4);
+}
+.btn-p:active{box-shadow:0 2px 10px rgba(124,111,247,.3)}
+.btn-o{background:var(--p3);color:var(--p);border:1.5px solid rgba(124,111,247,.2)}
+.btn-ok{background:rgba(6,214,160,.12);color:#059669;border:1.5px solid rgba(6,214,160,.2)}
+.btn-err{background:rgba(239,35,60,.1);color:var(--err);border:1.5px solid rgba(239,35,60,.15)}
+
+/* ─── Quiz options ─── */
+.qopts{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:13px}
+.qopt{
+  background:#fff;border:2px solid var(--line);border-radius:14px;
+  padding:15px 9px;font-size:14px;font-weight:600;cursor:pointer;
+  transition:all .15s;text-align:center;color:var(--text);
+  box-shadow:0 2px 8px rgba(0,0,0,.04);
+}
+.qopt:active{transform:scale(.97)}
+.qopt.ok{background:#d4f1e8;border-color:var(--ok);color:#059669}
+.qopt.ng{background:#fde8ea;border-color:var(--err);color:var(--err)}
+.qopt.off{pointer-events:none}
+
+/* ─── Progress bar ─── */
+.pw{background:var(--line);border-radius:10px;height:6px;overflow:hidden;margin:6px 0}
+.pb{height:100%;background:linear-gradient(90deg,var(--p),var(--pk));border-radius:10px;transition:width .4s ease;position:relative}
+.pb::after{content:'';position:absolute;top:0;left:0;right:0;bottom:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.35),transparent);animation:pbShine 2s ease-in-out infinite}
+@keyframes pbShine{0%{transform:translateX(-100%)}100%{transform:translateX(200%)}}
+
+/* ─── SRS chips ─── */
+.srs-row{display:flex;gap:8px;margin-bottom:14px}
+.srs-chip{
+  flex:1;background:#fff;border-radius:14px;padding:12px 8px;text-align:center;
+  box-shadow:0 2px 12px rgba(107,92,231,.08);
+}
+.srs-n{font-size:22px;font-weight:800;letter-spacing:-.5px}
+.srs-l{font-size:11px;color:var(--sub);margin-top:2px}
+
+/* ─── Tab row ─── */
+.tabs{display:flex;gap:7px;overflow-x:auto;padding:2px 0;scrollbar-width:none;margin-bottom:13px}
+.tabs::-webkit-scrollbar{display:none}
+.tab{
+  background:rgba(124,111,247,.08);border-radius:20px;padding:7px 14px;
+  font-size:13px;white-space:nowrap;cursor:pointer;transition:all .15s;
+  border:none;font-weight:600;color:var(--sub);
+}
+.tab.on{background:var(--p);color:#fff;box-shadow:0 3px 12px rgba(124,111,247,.35)}
+.tab.locked{opacity:.55}
+
+/* ─── Waveform ─── */
+.wv{display:flex;align-items:center;justify-content:center;gap:4px;height:50px;margin:12px 0}
+.wb{background:linear-gradient(180deg,var(--p),var(--pk));border-radius:4px;width:5px;animation:wvAnim 1s ease-in-out infinite}
+.wb:nth-child(2){animation-delay:.1s}.wb:nth-child(3){animation-delay:.2s}
+.wb:nth-child(4){animation-delay:.3s}.wb:nth-child(5){animation-delay:.2s}
+.wb:nth-child(6){animation-delay:.1s}.wb:nth-child(7){animation-delay:0s}
+@keyframes wvAnim{0%,100%{height:7px;opacity:.3}50%{height:36px;opacity:1}}
+.wv.p .wb{animation-play-state:paused;height:9px;opacity:.3}
+
+/* ─── Mic button ─── */
+.mic{
+  width:80px;height:80px;border-radius:50%;
+  background:linear-gradient(145deg,var(--p),var(--pk));
+  border:none;font-size:28px;cursor:pointer;display:flex;align-items:center;
+  justify-content:center;transition:all .2s;
+  box-shadow:0 8px 28px rgba(124,111,247,.45);margin:0 auto;
+}
+.mic.rec{background:linear-gradient(145deg,#e17055,var(--pk));animation:pmAnim 1s ease-in-out infinite;box-shadow:0 8px 28px rgba(247,37,133,.5)}
+@keyframes pmAnim{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
+
+/* ─── Toast ─── */
+.toast{
+  position:fixed;top:max(env(safe-area-inset-top),24px);left:50%;transform:translateX(-50%) translateY(-130px);
+  background:rgba(26,24,48,.95);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+  color:#fff;padding:12px 22px;border-radius:26px;font-size:14px;font-weight:600;
+  z-index:1000;transition:transform .3s cubic-bezier(.34,1.56,.64,1);
+  max-width:290px;text-align:center;pointer-events:none;
+  border:1px solid rgba(255,255,255,.1);
+  box-shadow:0 8px 32px rgba(0,0,0,.3);
+}
+.toast.on{transform:translateX(-50%) translateY(0)}
+.toast.ok{background:rgba(6,214,160,.9);backdrop-filter:blur(16px)}
+.toast.err{background:rgba(239,35,60,.9);backdrop-filter:blur(16px)}
+
+/* ─── Confetti ─── */
+.cel{position:fixed;top:0;left:0;right:0;bottom:0;pointer-events:none;z-index:999}
+.cp{position:absolute;animation:cpFall 1.7s cubic-bezier(.4,0,.6,1) forwards}
+@keyframes cpFall{0%{transform:translateY(-10px) rotate(0) scale(1);opacity:1}100%{transform:translateY(110vh) rotate(800deg) scale(.7);opacity:0}}
+
+/* ─── Result screen ─── */
+.res{text-align:center;padding:30px 14px}
+.res-em{font-size:62px;margin-bottom:10px;filter:drop-shadow(0 4px 12px rgba(0,0,0,.2))}
+.res-sc{font-size:60px;font-weight:800;background:linear-gradient(135deg,var(--p),var(--pk));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;line-height:1}
+.res-lb{font-size:16px;color:var(--sub);margin:6px 0 22px}
+
+/* ─── Milestone ─── */
+.ms{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}
+.ms:last-child{border:none}
+.ms-ico{font-size:26px;width:38px;text-align:center}
+.ms-nm{font-size:14px;font-weight:700}
+.ms-sb{font-size:12px;color:var(--sub);margin-top:1px}
+.ms-ok{margin-left:auto;color:var(--ok);font-size:20px;font-weight:800}
+.ms-lk{margin-left:auto;color:var(--line);font-size:16px}
+
+/* ─── Back button ─── */
+.back-btn{background:rgba(124,111,247,.1);border:none;border-radius:12px;padding:7px 13px;font-size:18px;cursor:pointer;color:var(--p);font-weight:700;transition:all .15s}
+.back-btn:active{transform:scale(.94)}
+
+/* ─── Lesson screen header ─── */
+.ls-hdr{
+  background:linear-gradient(145deg,#1E1B4B,#3730A3);
+  border-radius:22px;padding:18px;margin-bottom:16px;
+  box-shadow:0 6px 24px rgba(55,48,163,.3);position:relative;overflow:hidden;
+}
+.ls-hdr-glow{position:absolute;inset:0;background:radial-gradient(ellipse 60% 80% at 80% 20%,rgba(247,37,133,.25) 0%,transparent 60%);pointer-events:none}
+.ls-hdr-c{position:relative;z-index:1}
+
+/* ─── Unlock popup ─── */
+.up-bg{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.55);backdrop-filter:blur(6px);z-index:499;display:none}
+.up-bg.on{display:block}
+.up-pop{
+  position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(.85);
+  background:#fff;border-radius:26px;padding:32px 28px;text-align:center;z-index:500;
+  box-shadow:0 24px 70px rgba(0,0,0,.25);opacity:0;pointer-events:none;
+  transition:all .38s cubic-bezier(.34,1.56,.64,1);max-width:320px;width:90%;
+}
+.up-pop.on{transform:translate(-50%,-50%) scale(1);opacity:1;pointer-events:auto}
+
+/* ─── Lock overlay ─── */
+.lock-ov{text-align:center;padding:36px 20px;color:var(--sub)}
+.lock-ico{font-size:46px;margin-bottom:12px;opacity:.5}
+.lock-nm{font-size:16px;font-weight:800;color:var(--text);margin-bottom:5px}
+.lock-sb{font-size:13px;line-height:1.5}
+.lock-prog{
+  margin-top:16px;padding:14px;background:var(--bg);
+  border-radius:14px;font-size:13px;color:var(--text);text-align:left;
+}
+
+@media(max-width:360px){.fc-word{font-size:28px}.qopts{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- ════════════ HOME ════════════ -->
+<div id="sc-home" class="sc on">
+  <div class="hero">
+    <div class="hero-mesh"></div>
+    <div class="hero-noise"></div>
+    <div class="hero-content">
+      <div class="hero-row">
+        <div>
+          <div class="hero-title">英語學習</div>
+          <div class="hero-sub">每天 10 分鐘，循序漸進</div>
+        </div>
+        <div class="hero-lv" id="h-lv">Lv. 1</div>
+      </div>
+      <div class="hero-stats">
+        <div class="stat-pill">🔥 <span id="h-streak">0</span> 天連續</div>
+        <div class="stat-pill">⭐ <span id="h-xp">0</span> XP</div>
+        <div class="stat-pill">📚 <span id="h-words">0</span> 單字</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Placement test banner (shows if test not taken) -->
+  <div id="placement-banner" style="display:none;margin-bottom:14px">
+    <div style="background:linear-gradient(145deg,#FF6B6B,#F72585,#7C6FF7);border-radius:20px;padding:18px 20px;position:relative;overflow:hidden;cursor:pointer" onclick="goTo('placement')">
+      <div style="position:absolute;inset:0;background:radial-gradient(ellipse 60% 80% at 80% 20%,rgba(255,255,255,.15) 0%,transparent 60%);pointer-events:none"></div>
+      <div style="position:relative;z-index:1;display:flex;align-items:center;gap:14px">
+        <div style="font-size:36px;filter:drop-shadow(0 2px 8px rgba(0,0,0,.3))">🎯</div>
+        <div style="flex:1">
+          <div style="font-size:12px;font-weight:600;color:rgba(255,255,255,.7);letter-spacing:.6px;text-transform:uppercase;margin-bottom:3px">推薦先做</div>
+          <div style="font-size:17px;font-weight:800;color:#fff;letter-spacing:-.3px">程度評估測驗</div>
+          <div style="font-size:12px;color:rgba(255,255,255,.65);margin-top:3px">12 題 · 3 分鐘 · 自動調整難度</div>
+        </div>
+        <div style="color:rgba(255,255,255,.6);font-size:22px;font-weight:700">›</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Daily lesson -->
+  <div class="dl-card" onclick="goTo('lesson')">
+    <div class="dl-card-glow"></div>
+    <div class="dl-card-content">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div>
+          <div class="dl-label">今日課程</div>
+          <div class="dl-title" id="lc-t">開始今日課程</div>
+          <div class="dl-sub" id="lc-s">10 個練習步驟，約 8 分鐘</div>
+        </div>
+        <div style="font-size:36px;filter:drop-shadow(0 3px 8px rgba(0,0,0,.3))">📖</div>
+      </div>
+      <div class="dl-steps" id="lc-dots"></div>
+    </div>
+  </div>
+
+  <div class="sec">練習模組</div>
+  <div class="modg">
+    <button class="modc modc-v" onclick="goTo('vocab')">
+      <div class="modc-shine"></div>
+      <div class="modc-ico">📚</div>
+      <div class="modc-nm">單字學習</div>
+      <div class="modc-ds">間隔複習 SRS</div>
+      <div class="modc-arr">›</div>
+    </button>
+    <button class="modc modc-l" onclick="goTo('listening')">
+      <div class="modc-shine"></div>
+      <div class="modc-ico">🎧</div>
+      <div class="modc-nm">聽力練習</div>
+      <div class="modc-ds">聽句子選答案</div>
+      <div class="modc-arr">›</div>
+    </button>
+    <button class="modc modc-s" onclick="goTo('speaking')">
+      <div class="modc-shine"></div>
+      <div class="modc-ico">🎤</div>
+      <div class="modc-nm">口說練習</div>
+      <div class="modc-ds">跟讀 / 中翻英</div>
+      <div class="modc-arr">›</div>
+    </button>
+    <button class="modc modc-p" onclick="goTo('progress')">
+      <div class="modc-shine"></div>
+      <div class="modc-ico">📊</div>
+      <div class="modc-nm">學習進度</div>
+      <div class="modc-ds">等級 & 里程碑</div>
+      <div class="modc-arr">›</div>
+    </button>
+  </div>
+
+  <div class="sec" style="margin-top:6px">今日推薦單字</div>
+  <div class="dw-card">
+    <div class="dw-glow"></div>
+    <div class="dw-content">
+      <div style="flex:1">
+        <div class="dw-word" id="dw-w"></div>
+        <div class="dw-ph" id="dw-ph"></div>
+        <div class="dw-zh" id="dw-zh"></div>
+        <div class="dw-ex" id="dw-ex"></div>
+      </div>
+      <button class="snd snd-dark" onclick="tts(window._dw&&window._dw.word)">🔊</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════ DAILY LESSON ════════════ -->
+<div id="sc-lesson" class="sc">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+    <button onclick="goTo('home')" class="back-btn">←</button>
+    <div style="flex:1">
+      <div style="font-size:16px;font-weight:800;letter-spacing:-.3px" id="dl-title">今日課程</div>
+      <div style="font-size:12px;color:var(--sub)" id="dl-stp">步驟 1 / 10</div>
+    </div>
+    <div style="font-size:13px;font-weight:700;color:var(--p)" id="dl-xp">+0 XP</div>
+  </div>
+  <div style="margin-bottom:16px">
+    <div class="pw" style="height:8px;border-radius:8px"><div class="pb" id="dl-bar" style="width:5%"></div></div>
+  </div>
+  <div id="dl-body"></div>
+</div>
+
+<!-- ════════════ VOCAB ════════════ -->
+<div id="sc-vocab" class="sc">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+    <button onclick="goTo('home')" class="back-btn">←</button>
+    <div style="font-size:17px;font-weight:800;letter-spacing:-.3px">單字學習</div>
+    <div id="vc-cnt" style="font-size:13px;color:var(--sub);font-weight:600"></div>
+  </div>
+  <div class="srs-row">
+    <div class="srs-chip"><div class="srs-n" id="srs-nw" style="color:var(--p)">0</div><div class="srs-l">新單字</div></div>
+    <div class="srs-chip"><div class="srs-n" id="srs-due" style="color:var(--og)">0</div><div class="srs-l">待複習</div></div>
+    <div class="srs-chip"><div class="srs-n" id="srs-mas" style="color:var(--gn)">0</div><div class="srs-l">已熟悉</div></div>
+  </div>
+  <div class="tabs" id="lv-tabs"></div>
+  <div style="display:flex;gap:7px;margin-bottom:13px">
+    <button class="tab on" id="tab-fc" onclick="setVM('flash')">單字卡</button>
+    <button class="tab" id="tab-qz" onclick="setVM('quiz')">測驗</button>
+  </div>
+  <!-- Flashcard mode -->
+  <div id="vm-flash">
+    <div class="fcard" id="fcard" onclick="flipFC()">
+      <div class="fc-srs" id="fc-b"></div>
+      <div id="fc-fr" style="display:flex;flex-direction:column;align-items:center">
+        <div class="fc-word" id="fc-w"></div>
+        <div class="fc-ph" id="fc-ph"></div>
+        <div class="fc-hint">點擊看中文 👆</div>
+      </div>
+      <div id="fc-bk" style="display:none;width:100%">
+        <div class="fc-zh" id="fc-zh"></div>
+        <div class="fc-ex" id="fc-ex"></div>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:center;margin:12px 0 16px">
+      <button class="snd" onclick="speakFC()">🔊</button>
+    </div>
+    <div style="display:flex;gap:9px">
+      <button class="btn btn-o" onclick="prevFC()" style="flex:1">← 上一個</button>
+      <button class="btn btn-p" onclick="nextFC()" style="flex:2">下一個 →</button>
+    </div>
+  </div>
+  <!-- Quiz mode -->
+  <div id="vm-quiz" style="display:none">
+    <div class="card">
+      <div style="text-align:center;font-size:13px;color:var(--sub);margin-bottom:8px;font-weight:500">這個英文單字是什麼意思？</div>
+      <div style="text-align:center;margin:16px 0 8px">
+        <div id="qz-w" style="font-size:32px;font-weight:800;color:var(--p);letter-spacing:-.5px"></div>
+        <button class="snd" style="width:36px;height:36px;font-size:15px;margin:8px auto 0" onclick="tts(S.qWord&&S.qWord.word)">🔊</button>
+      </div>
+      <div class="qopts" id="qopts"></div>
+    </div>
+    <div id="qfb" style="display:none" class="card">
+      <div id="qfb-t" style="font-size:15px;font-weight:800;margin-bottom:5px;letter-spacing:-.2px"></div>
+      <div id="qfb-e" style="font-size:13px;color:var(--sub);margin-bottom:13px;line-height:1.5"></div>
+      <button class="btn btn-p" onclick="nextQz()">繼續 →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════ LISTENING ════════════ -->
+<div id="sc-listening" class="sc">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+    <button onclick="goTo('home')" class="back-btn">←</button>
+    <div style="font-size:17px;font-weight:800;letter-spacing:-.3px">聽力練習</div>
+    <div id="ls-sc" style="font-size:13px;font-weight:700;color:var(--p)">0 分</div>
+  </div>
+  <div id="ls-body"></div>
+</div>
+
+<!-- ════════════ SPEAKING ════════════ -->
+<div id="sc-speaking" class="sc">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+    <button onclick="goTo('home')" class="back-btn">←</button>
+    <div style="font-size:17px;font-weight:800;letter-spacing:-.3px">口說練習</div>
+    <div id="sp-cnt" style="font-size:13px;color:var(--sub);font-weight:600">1/15</div>
+  </div>
+  <div class="tabs">
+    <button class="tab on" id="sp-t1" onclick="setST('follow')">跟讀練習</button>
+    <button class="tab" id="sp-t2" onclick="setST('trans')">中翻英</button>
+  </div>
+  <!-- Follow -->
+  <div id="sp-follow">
+    <div class="card" style="text-align:center">
+      <div style="font-size:13px;color:var(--sub);margin-bottom:7px;font-weight:500">先聽，再跟著說</div>
+      <div id="sp-en" style="font-size:21px;font-weight:700;line-height:1.45;margin:14px 0 5px;color:var(--p);letter-spacing:-.2px"></div>
+      <div id="sp-zh" style="font-size:13px;color:var(--sub);margin-bottom:16px"></div>
+      <button class="snd" onclick="playSpk()" style="margin:0 auto 16px">🔊</button>
+      <div style="font-size:12px;color:var(--sub);margin-bottom:10px">按麥克風開始跟讀</div>
+      <button class="mic" id="mic" onclick="togRec()">🎤</button>
+      <div id="mic-st" style="font-size:13px;color:var(--sub);margin-top:10px">點擊開始錄音</div>
+      <div id="rec-res" style="display:none;background:var(--bg);border-radius:12px;padding:12px;margin-top:12px;font-size:14px;font-weight:500"></div>
+      <div style="display:flex;gap:9px;margin-top:16px">
+        <button class="btn btn-o" onclick="prevSpk()" style="flex:1">← 上一句</button>
+        <button class="btn btn-p" onclick="nextSpk()" style="flex:2">下一句 →</button>
+      </div>
+    </div>
+  </div>
+  <!-- Translate -->
+  <div id="sp-trans" style="display:none">
+    <div class="card" style="text-align:center">
+      <div style="font-size:13px;color:var(--sub);margin-bottom:8px;font-weight:500">把中文說成英文</div>
+      <div id="tr-zh" style="font-size:23px;font-weight:700;line-height:1.45;margin:16px 0"></div>
+      <button id="tr-btn" class="btn btn-p" onclick="revTr()">顯示英文答案</button>
+      <div id="tr-ans" style="display:none;border-top:1px solid var(--line);padding-top:15px;margin-top:15px">
+        <div style="font-size:12px;color:var(--sub);font-weight:500">英文參考答案：</div>
+        <div id="tr-en" style="font-size:20px;font-weight:800;color:var(--p);margin:8px 0;letter-spacing:-.3px"></div>
+        <button class="snd" onclick="playTr()" style="margin:0 auto;width:42px;height:42px;font-size:18px">🔊</button>
+        <div style="display:flex;gap:9px;margin-top:14px">
+          <button class="btn btn-err" style="flex:1" onclick="judTr(false)">✗ 答錯</button>
+          <button class="btn btn-ok" style="flex:1" onclick="judTr(true)">✓ 答對</button>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:12px">
+        <button class="btn btn-o" onclick="prevTr()" style="flex:1">← 上一題</button>
+        <button class="btn btn-o" onclick="nextTr()" style="flex:2">下一題 →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════ PROGRESS ════════════ -->
+<div id="sc-progress" class="sc">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+    <button onclick="goTo('home')" class="back-btn">←</button>
+    <div style="font-size:17px;font-weight:800;letter-spacing:-.3px">學習進度</div>
+    <div></div>
+  </div>
+  <!-- Hero stats -->
+  <div style="background:linear-gradient(145deg,#1E1B4B,#3730A3);border-radius:22px;padding:22px;margin-bottom:13px;box-shadow:0 8px 28px rgba(55,48,163,.35);position:relative;overflow:hidden">
+    <div style="position:absolute;inset:0;background:radial-gradient(ellipse 60% 80% at 80% 20%,rgba(247,37,133,.22) 0%,transparent 60%);pointer-events:none"></div>
+    <div style="position:relative;z-index:1;display:flex;justify-content:space-around">
+      <div style="text-align:center"><div style="font-size:30px;font-weight:800;color:#fff" id="pg-w">0</div><div style="font-size:11px;color:rgba(255,255,255,.6)">單字量</div></div>
+      <div style="text-align:center"><div style="font-size:30px;font-weight:800;color:#fff" id="pg-acc">0%</div><div style="font-size:11px;color:rgba(255,255,255,.6)">正確率</div></div>
+      <div style="text-align:center"><div style="font-size:30px;font-weight:800;color:#fff" id="pg-str">0</div><div style="font-size:11px;color:rgba(255,255,255,.6)">連續天</div></div>
+    </div>
+  </div>
+  <!-- XP progress -->
+  <div class="card">
+    <div class="card-t">等級 & XP</div>
+    <div style="font-size:32px;font-weight:800;background:linear-gradient(135deg,var(--p),var(--pk));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent" id="pg-xp">0 XP</div>
+    <div class="pw" style="margin-top:10px;height:8px"><div class="pb" id="pg-xpb" style="width:0%"></div></div>
+    <div style="font-size:12px;color:var(--sub);margin-top:4px;font-weight:500" id="pg-lv"></div>
+  </div>
+  <!-- SRS -->
+  <div class="card">
+    <div class="card-t">間隔重複學習狀態</div>
+    <div class="srs-row" style="margin-bottom:0">
+      <div class="srs-chip"><div class="srs-n" id="pg-new" style="color:var(--p)">0</div><div class="srs-l">新單字</div></div>
+      <div class="srs-chip"><div class="srs-n" id="pg-due" style="color:var(--og)">0</div><div class="srs-l">待複習</div></div>
+      <div class="srs-chip"><div class="srs-n" id="pg-mas" style="color:var(--gn)">0</div><div class="srs-l">已熟悉</div></div>
+    </div>
+  </div>
+  <!-- Milestones -->
+  <div class="card">
+    <div class="card-t">解鎖里程碑</div>
+    <div id="milestones"></div>
+  </div>
+  <!-- Module stats -->
+  <div class="card">
+    <div class="card-t">各模組紀錄</div>
+    <div id="pg-mods"></div>
+  </div>
+  <button class="btn" style="width:100%;margin-top:10px;background:rgba(239,35,60,.08);color:var(--err);border:1.5px solid rgba(239,35,60,.15)" onclick="resetAll()">重設全部進度</button>
+</div>
+
+<!-- ════════════ PLACEMENT TEST ════════════ -->
+<div id="sc-placement" class="sc">
+  <!-- Intro screen -->
+  <div id="pl-intro">
+    <div style="background:linear-gradient(145deg,#1E1B4B,#3730A3);border-radius:22px;padding:28px 22px;margin-bottom:16px;position:relative;overflow:hidden;text-align:center">
+      <div style="position:absolute;inset:0;background:radial-gradient(ellipse 70% 70% at 60% 20%,rgba(247,37,133,.3) 0%,transparent 60%);pointer-events:none"></div>
+      <div style="position:relative;z-index:1">
+        <div style="font-size:56px;margin-bottom:12px;filter:drop-shadow(0 4px 12px rgba(0,0,0,.3))">🎯</div>
+        <div style="font-size:22px;font-weight:800;color:#fff;letter-spacing:-.4px;margin-bottom:8px">程度評估測驗</div>
+        <div style="font-size:13px;color:rgba(255,255,255,.65);line-height:1.6">12 題，約 3 分鐘<br>測試完畢後自動幫你調整難度<br>解鎖適合你的學習等級</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-t">測驗說明</div>
+      <div style="font-size:14px;color:var(--sub);line-height:1.7">
+        <div style="margin-bottom:6px">📌 共 12 題，分 4 個難度層級（各 3 題）</div>
+        <div style="margin-bottom:6px">📈 每層級答對 2 題以上，就會解鎖該等級</div>
+        <div style="margin-bottom:6px">⚡ 已掌握的單字會直接標為「已熟悉」，不會重複學習</div>
+        <div>🎯 測驗結果只影響起始難度，之後隨時可以重測</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:4px">
+      <button class="btn btn-o" onclick="goTo('home')" style="flex:1">先不用</button>
+      <button class="btn btn-p" onclick="startPlacement()" style="flex:2">開始測驗 →</button>
+    </div>
+  </div>
+
+  <!-- Quiz screen -->
+  <div id="pl-quiz" style="display:none">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+      <div style="flex:1">
+        <div style="font-size:16px;font-weight:800;letter-spacing:-.3px">程度評估</div>
+        <div style="font-size:12px;color:var(--sub)" id="pl-stp">第 1 題 / 12 題</div>
+      </div>
+      <div style="font-size:13px;font-weight:700;color:var(--p)" id="pl-tier">Tier 1</div>
+    </div>
+    <div class="pw" style="height:8px;margin-bottom:18px"><div class="pb" id="pl-bar" style="width:8%"></div></div>
+    <div class="card" id="pl-qcard" style="text-align:center">
+      <div id="pl-tier-label" style="font-size:11px;font-weight:600;letter-spacing:.6px;text-transform:uppercase;margin-bottom:14px;padding:4px 12px;border-radius:20px;display:inline-block"></div>
+      <div id="pl-q" style="font-size:17px;font-weight:700;line-height:1.45;margin-bottom:20px;letter-spacing:-.2px"></div>
+      <div class="qopts" id="pl-opts" style="grid-template-columns:1fr;gap:9px"></div>
+    </div>
+    <div id="pl-fb" style="display:none" class="card">
+      <div id="pl-fb-t" style="font-size:15px;font-weight:800;margin-bottom:5px"></div>
+      <div id="pl-fb-e" style="font-size:13px;color:var(--sub);margin-bottom:12px;line-height:1.5"></div>
+      <button class="btn btn-p" id="pl-next-btn" onclick="plNext()">繼續 →</button>
+    </div>
+  </div>
+
+  <!-- Result screen -->
+  <div id="pl-result" style="display:none">
+    <div style="background:linear-gradient(145deg,#1E1B4B,#3730A3);border-radius:22px;padding:28px 22px;margin-bottom:16px;text-align:center;position:relative;overflow:hidden">
+      <div style="position:absolute;inset:0;background:radial-gradient(ellipse 70% 70% at 60% 20%,rgba(247,37,133,.3) 0%,transparent 60%);pointer-events:none"></div>
+      <div style="position:relative;z-index:1">
+        <div style="font-size:52px;margin-bottom:10px" id="pl-res-em">🎉</div>
+        <div style="font-size:22px;font-weight:800;color:#fff;letter-spacing:-.4px;margin-bottom:6px" id="pl-res-t">測驗完成！</div>
+        <div style="font-size:13px;color:rgba(255,255,255,.65)" id="pl-res-sub"></div>
+      </div>
+    </div>
+    <div class="card" id="pl-res-detail"></div>
+    <div class="card" id="pl-unlocked" style="margin-top:0"></div>
+    <div style="display:flex;gap:10px;margin-top:4px">
+      <button class="btn btn-o" onclick="resetPlacement()" style="flex:1">重新測驗</button>
+      <button class="btn btn-p" onclick="goTo('home')" style="flex:2">開始學習 →</button>
+    </div>
+  </div>
+</div>
+
+</div><!-- /app -->
+
+<!-- Bottom Nav -->
+<nav class="bnav">
+  <button class="ni on" id="n-home"      onclick="goTo('home')"><span class="ni-ico">🏠</span>首頁</button>
+  <button class="ni"    id="n-vocab"     onclick="goTo('vocab')"><span class="ni-ico">📚</span>單字</button>
+  <button class="ni"    id="n-listening" onclick="goTo('listening')"><span class="ni-ico">🎧</span>聽力</button>
+  <button class="ni"    id="n-speaking"  onclick="goTo('speaking')"><span class="ni-ico">🎤</span>口說</button>
+  <button class="ni"    id="n-progress"  onclick="goTo('progress')"><span class="ni-ico">📊</span>進度</button>
+</nav>
+
+<div class="toast" id="toast"></div>
+<div class="cel" id="cel"></div>
+<div class="up-bg" id="up-bg" onclick="closeUnlock()"></div>
+<div class="up-pop" id="up-pop">
+  <div id="up-ico" style="font-size:56px;margin-bottom:12px;filter:drop-shadow(0 4px 12px rgba(0,0,0,.15))"></div>
+  <div id="up-t" style="font-size:21px;font-weight:800;margin-bottom:7px;letter-spacing:-.3px"></div>
+  <div id="up-m" style="font-size:14px;color:var(--sub);margin-bottom:22px;line-height:1.5"></div>
+  <button class="btn btn-p" onclick="closeUnlock()">太棒了！繼續學習</button>
+</div>
+
+<script>
+// ════════════ DATA ════════════
+const VOCAB=[
+  // ── Lv1  B1 基礎商務 ──
+  {id:1,  word:"deadline",     ph:"/ˈdedlaɪn/",      zh:"截止日期",   ex:"We need to meet the deadline.",                   exZh:"我們需要趕上截止日期。",       lv:1,cat:"專案"},
+  {id:2,  word:"project",      ph:"/ˈprɒdʒekt/",     zh:"專案",       ex:"I'm leading a new project.",                      exZh:"我正在主導一個新專案。",       lv:1,cat:"專案"},
+  {id:3,  word:"schedule",     ph:"/ˈskedʒuːl/",     zh:"行程／排程", ex:"Let me check my schedule.",                       exZh:"讓我查一下我的行程。",         lv:1,cat:"專案"},
+  {id:4,  word:"meeting",      ph:"/ˈmiːtɪŋ/",       zh:"會議",       ex:"We have a meeting at 10 a.m.",                    exZh:"我們十點有個會議。",           lv:1,cat:"職場"},
+  {id:5,  word:"report",       ph:"/rɪˈpɔːrt/",      zh:"報告",       ex:"Please submit your report by Friday.",             exZh:"請在週五前提交報告。",         lv:1,cat:"職場"},
+  {id:6,  word:"client",       ph:"/ˈklaɪənt/",      zh:"客戶",       ex:"The client wants a quick update.",                 exZh:"客戶想要快速的進度報告。",     lv:1,cat:"業務"},
+  {id:7,  word:"budget",       ph:"/ˈbʌdʒɪt/",       zh:"預算",       ex:"We need to stay within budget.",                   exZh:"我們需要在預算內。",           lv:1,cat:"財務"},
+  {id:8,  word:"feedback",     ph:"/ˈfiːdbæk/",      zh:"回饋",       ex:"Can you give me feedback on this?",                exZh:"你能給我這方面的回饋嗎？",     lv:1,cat:"溝通"},
+  {id:9,  word:"progress",     ph:"/ˈprɒɡres/",      zh:"進度",       ex:"How is the progress on the project?",              exZh:"專案的進度如何？",             lv:1,cat:"專案"},
+  {id:10, word:"confirm",      ph:"/kənˈfɜːrm/",     zh:"確認",       ex:"Please confirm your attendance.",                  exZh:"請確認您的出席。",             lv:1,cat:"溝通"},
+  {id:11, word:"approve",      ph:"/əˈpruːv/",       zh:"批准",       ex:"The manager approved my proposal.",                exZh:"主管批准了我的提案。",         lv:1,cat:"流程"},
+  {id:12, word:"update",       ph:"/ˈʌpdeɪt/",       zh:"更新／彙報", ex:"Please update me on the situation.",               exZh:"請讓我了解情況的最新進展。",   lv:1,cat:"溝通"},
+  {id:13, word:"target",       ph:"/ˈtɑːrɡɪt/",      zh:"目標",       ex:"We hit our sales target this quarter.",            exZh:"我們這季達到了銷售目標。",     lv:1,cat:"業務"},
+  {id:14, word:"priority",     ph:"/praɪˈɒrɪti/",    zh:"優先事項",   ex:"Customer satisfaction is our top priority.",       exZh:"客戶滿意度是我們的首要任務。", lv:1,cat:"策略"},
+  {id:15, word:"review",       ph:"/rɪˈvjuː/",       zh:"審查",       ex:"Let's review the contract together.",              exZh:"我們一起審查合約。",           lv:1,cat:"流程"},
+  {id:16, word:"proposal",     ph:"/prəˈpoʊzəl/",    zh:"提案",       ex:"I submitted a proposal to management.",            exZh:"我向管理層提交了一份提案。",   lv:1,cat:"業務"},
+  {id:17, word:"solution",     ph:"/səˈluːʃən/",     zh:"解決方案",   ex:"We found an effective solution.",                  exZh:"我們找到了一個有效的解決方案。",lv:1,cat:"問題解決"},
+  {id:18, word:"strategy",     ph:"/ˈstræteɪdʒi/",  zh:"策略",       ex:"We need a clear marketing strategy.",              exZh:"我們需要一個清晰的行銷策略。", lv:1,cat:"策略"},
+  {id:19, word:"implement",    ph:"/ˈɪmplɪment/",    zh:"執行",       ex:"It's time to implement the plan.",                 exZh:"是時候執行計畫了。",           lv:1,cat:"流程"},
+  {id:20, word:"requirement",  ph:"/rɪˈkwaɪərmənt/", zh:"需求",       ex:"Please clarify the technical requirements.",       exZh:"請說明技術需求。",             lv:1,cat:"專案"},
+  // ── Lv2  B1+ 進階職場 ──
+  {id:21, word:"collaborate",  ph:"/kəˈlæbəreɪt/",  zh:"合作",       ex:"We collaborate with teams across departments.",    exZh:"我們與跨部門團隊合作。",       lv:2,cat:"團隊"},
+  {id:22, word:"negotiate",    ph:"/nɪˈɡoʊʃieɪt/",  zh:"談判",       ex:"She negotiated a better contract.",                exZh:"她談到了一份更好的合約。",     lv:2,cat:"業務"},
+  {id:23, word:"coordinate",   ph:"/koʊˈɔːrdɪneɪt/",zh:"協調",       ex:"I coordinate between design and engineering.",     exZh:"我在設計和工程之間進行協調。", lv:2,cat:"團隊"},
+  {id:24, word:"evaluate",     ph:"/ɪˈvæljueɪt/",   zh:"評估",       ex:"We need to evaluate the risks carefully.",         exZh:"我們需要仔細評估風險。",       lv:2,cat:"分析"},
+  {id:25, word:"milestone",    ph:"/ˈmaɪlstoʊn/",   zh:"里程碑",     ex:"We reached an important milestone today.",         exZh:"我們今天達到了一個重要里程碑。",lv:2,cat:"專案"},
+  {id:26, word:"stakeholder",  ph:"/ˈsteɪkhoʊldər/",zh:"利害關係人", ex:"All stakeholders were informed of the change.",    exZh:"所有利害關係人都被告知了這項變化。",lv:2,cat:"管理"},
+  {id:27, word:"presentation", ph:"/ˌprezənˈteɪʃən/",zh:"簡報",      ex:"Her presentation impressed the board.",            exZh:"她的簡報讓董事會印象深刻。",   lv:2,cat:"溝通"},
+  {id:28, word:"specification",ph:"/ˌspesɪfɪˈkeɪʃən/",zh:"規格",    ex:"The client changed the specifications.",           exZh:"客戶修改了規格。",             lv:2,cat:"技術"},
+  {id:29, word:"integration",  ph:"/ˌɪntɪˈɡreɪʃən/",zh:"整合",      ex:"The integration process took two weeks.",          exZh:"整合過程花了兩週時間。",       lv:2,cat:"技術"},
+  {id:30, word:"productivity", ph:"/ˌprɒdʌkˈtɪvɪti/",zh:"生產力",   ex:"Remote work increased our productivity.",          exZh:"遠端工作提升了我們的生產力。", lv:2,cat:"效率"},
+  {id:31, word:"initiative",   ph:"/ɪˈnɪʃətɪv/",    zh:"倡議／主動",  ex:"She launched a cost-saving initiative.",          exZh:"她發起了一項節省成本的倡議。", lv:2,cat:"管理"},
+  {id:32, word:"workflow",     ph:"/ˈwɜːrkfloʊ/",   zh:"工作流程",   ex:"We streamlined the approval workflow.",            exZh:"我們簡化了審批工作流程。",     lv:2,cat:"效率"},
+  {id:33, word:"benchmark",    ph:"/ˈbentʃmɑːrk/",  zh:"基準",       ex:"This sets a new benchmark for quality.",           exZh:"這為品質設定了新的基準。",     lv:2,cat:"分析"},
+  {id:34, word:"compliance",   ph:"/kəmˈplaɪəns/",  zh:"合規",       ex:"The product must meet compliance standards.",      exZh:"產品必須符合合規標準。",       lv:2,cat:"法務"},
+  {id:35, word:"delegate",     ph:"/ˈdelɪɡeɪt/",    zh:"授權",       ex:"Delegate tasks to improve efficiency.",            exZh:"透過授權任務來提升效率。",     lv:2,cat:"管理"},
+  {id:36, word:"monitor",      ph:"/ˈmɒnɪtər/",     zh:"監控",       ex:"We monitor system performance daily.",             exZh:"我們每天監控系統性能。",       lv:2,cat:"技術"},
+  {id:37, word:"facilitate",   ph:"/fəˈsɪlɪteɪt/",  zh:"促進",       ex:"She facilitates the weekly team sync.",            exZh:"她主持每週的團隊同步會議。",   lv:2,cat:"管理"},
+  // ── Lv3  B2 進階專業 ──
+  {id:38, word:"optimize",     ph:"/ˈɒptɪmaɪz/",    zh:"優化",       ex:"We need to optimize the process.",                 exZh:"我們需要優化流程。",           lv:3,cat:"效率"},
+  {id:39, word:"leverage",     ph:"/ˈlevərɪdʒ/",    zh:"善用",       ex:"We can leverage our existing network.",            exZh:"我們可以善用現有的資源網絡。", lv:3,cat:"策略"},
+  {id:40, word:"mitigate",     ph:"/ˈmɪtɪɡeɪt/",   zh:"緩解",       ex:"The team worked to mitigate the risk.",            exZh:"團隊致力於緩解風險。",         lv:3,cat:"風險"},
+  {id:41, word:"scalable",     ph:"/ˈskeɪləbəl/",   zh:"可擴展的",   ex:"We need a scalable architecture.",                 exZh:"我們需要可擴展的架構。",       lv:3,cat:"技術"},
+  {id:42, word:"proactive",    ph:"/proʊˈæktɪv/",   zh:"積極主動的", ex:"Be proactive in identifying problems.",            exZh:"在發現問題上要積極主動。",     lv:3,cat:"態度"},
+  {id:43, word:"transparent",  ph:"/trænsˈpærənt/", zh:"透明的",     ex:"Be transparent about project delays.",             exZh:"對於專案延誤要保持透明。",     lv:3,cat:"溝通"},
+  {id:44, word:"consolidate",  ph:"/kənˈsɒlɪdeɪt/", zh:"整合／鞏固", ex:"We plan to consolidate the two teams.",           exZh:"我們計畫整合這兩個團隊。",     lv:3,cat:"管理"},
+  {id:45, word:"accountability",ph:"/əˌkaʊntəˈbɪlɪti/",zh:"責任感",  ex:"Accountability is key to team success.",          exZh:"責任感是團隊成功的關鍵。",     lv:3,cat:"管理"},
+  {id:46, word:"contingency",  ph:"/kənˈtɪndʒənsi/",zh:"應急計畫",  ex:"Always have a contingency plan ready.",            exZh:"隨時準備好應急計畫。",         lv:3,cat:"風險"},
+  {id:47, word:"sustainable",  ph:"/səˈsteɪnəbəl/", zh:"永續的",     ex:"We aim for sustainable growth.",                  exZh:"我們致力於永續增長。",         lv:3,cat:"策略"},
+  // ── Lv4  B2+ 高階詞彙 ──
+  {id:48, word:"synergy",      ph:"/ˈsɪnərdʒi/",    zh:"協同效應",   ex:"The merger created real synergy.",                 exZh:"這次合併產生了真正的協同效應。",lv:4,cat:"策略"},
+  {id:49, word:"agile",        ph:"/ˈædʒaɪl/",      zh:"敏捷的",     ex:"We follow an agile development process.",          exZh:"我們採用敏捷開發流程。",       lv:4,cat:"技術"},
+  {id:50, word:"disruptive",   ph:"/dɪsˈrʌptɪv/",   zh:"顛覆性的",   ex:"AI is a disruptive technology.",                   exZh:"人工智慧是一項顛覆性技術。",   lv:4,cat:"創新"},
+  {id:51, word:"resilient",    ph:"/rɪˈzɪliənt/",   zh:"有韌性的",   ex:"A resilient supply chain is critical.",            exZh:"有韌性的供應鏈至關重要。",     lv:4,cat:"策略"},
+  {id:52, word:"innovative",   ph:"/ˈɪnəveɪtɪv/",   zh:"創新的",     ex:"We need an innovative approach.",                  exZh:"我們需要創新的方法。",         lv:4,cat:"創新"},
+  {id:53, word:"paradigm",     ph:"/ˈpærədaɪm/",    zh:"典範",       ex:"This represents a paradigm shift.",                exZh:"這代表了一次典範轉移。",       lv:4,cat:"概念"},
+  {id:54, word:"holistic",     ph:"/hoʊˈlɪstɪk/",   zh:"整體的",     ex:"Take a holistic view of the situation.",           exZh:"對情況採取整體觀。",           lv:4,cat:"概念"},
+  {id:55, word:"streamline",   ph:"/ˈstriːmlaɪn/",  zh:"精簡",       ex:"We need to streamline our operations.",            exZh:"我們需要精簡我們的運營。",     lv:4,cat:"效率"},
+];
+const LISTEN=[
+  {s:"Please confirm the meeting time by email.",
+   zh:"請透過電子郵件確認會議時間。",
+   opts:["請透過電話確認會議時間。","請透過電子郵件確認會議時間。","請在會議前確認時間。","請確認電子郵件的時間。"],ans:1},
+  {s:"The client wants to change the project deadline.",
+   zh:"客戶想要更改專案截止日期。",
+   opts:["客戶想要取消這個專案。","客戶想要更改專案截止日期。","客戶想要縮減專案預算。","客戶想要更改專案團隊。"],ans:1},
+  {s:"Our team achieved the quarterly sales target.",
+   zh:"我們的團隊達成了季度銷售目標。",
+   opts:["我們的團隊超越了季度銷售目標。","我們的部門達成了年度銷售目標。","我們的團隊達成了季度銷售目標。","我們的團隊制定了季度銷售目標。"],ans:2},
+  {s:"Can you update me on the project progress?",
+   zh:"你能告訴我專案進度嗎？",
+   opts:["你能開始這個新專案嗎？","你能告訴我專案進度嗎？","你能審查這份專案報告嗎？","你能更新這個專案的時間表嗎？"],ans:1},
+  {s:"The manager reviewed and approved the proposal.",
+   zh:"主管審查並批准了提案。",
+   opts:["主管審查並批准了提案。","主管審查並拒絕了提案。","主管準備了一份新提案。","主管審查並修改了提案。"],ans:0},
+  {s:"We need to stay within the project budget.",
+   zh:"我們需要控制在專案預算內。",
+   opts:["我們需要增加專案預算。","我們需要審查專案預算。","我們需要削減專案預算。","我們需要控制在專案預算內。"],ans:3},
+  {s:"She gave constructive feedback on the report.",
+   zh:"她對報告給出了建設性的回饋。",
+   opts:["她對報告給出了建設性的回饋。","她對報告提出了嚴厲的批評。","她對報告給出了正面的評價。","她沒有對報告給出任何回饋。"],ans:0},
+  {s:"Let's schedule a meeting to discuss the strategy.",
+   zh:"我們來安排一個會議討論策略。",
+   opts:["我們來取消這個策略討論會議。","我們來安排一個會議討論預算。","我們來安排一個會議討論策略。","我們已經安排了策略討論的時間。"],ans:2},
+  {s:"All stakeholders were informed of the change.",
+   zh:"所有利害關係人都被告知了這項變化。",
+   opts:["所有利害關係人都被告知了這項變化。","只有部分利害關係人被告知了這項變化。","所有利害關係人都批准了這項變化。","所有員工都被告知了這項變化。"],ans:0},
+  {s:"Collaborating with different teams improves productivity.",
+   zh:"與不同團隊合作可以提高生產力。",
+   opts:["與不同客戶合作可以提高生產力。","與不同團隊合作可以提高生產力。","與不同供應商合作可以提高生產力。","在不同部門工作可以提高生產力。"],ans:1},
+  {s:"We reached an important milestone ahead of schedule.",
+   zh:"我們提前達到了一個重要里程碑。",
+   opts:["我們錯過了一個重要的專案里程碑。","我們按時達到了一個重要里程碑。","我們提前達到了一個重要里程碑。","我們延遲達到了一個重要里程碑。"],ans:2},
+  {s:"Being proactive helps you identify risks early.",
+   zh:"積極主動有助於及早發現風險。",
+   opts:["積極主動有助於及早發現風險。","積極主動有助於降低工作成本。","定期開會有助於及早發現風險。","積極主動有助於提高客戶滿意度。"],ans:0},
+];
+const SPEAK=[
+  {en:"Can we schedule a meeting for next week?",                   zh:"我們可以安排下週的會議嗎？"},
+  {en:"I'll send you the report by end of day.",                    zh:"我今天下班前會把報告發給你。"},
+  {en:"Please confirm the deadline for this project.",              zh:"請確認這個專案的截止日期。"},
+  {en:"We need to stay within the approved budget.",                zh:"我們需要在批准的預算內。"},
+  {en:"The client requested some changes to the proposal.",         zh:"客戶要求對提案進行一些修改。"},
+  {en:"I'd like to give you an update on our progress.",            zh:"我想向您報告我們的進度。"},
+  {en:"Could you review this document before the meeting?",         zh:"會議前你能審查一下這份文件嗎？"},
+  {en:"Let me know if you have any feedback.",                      zh:"如果你有任何回饋，請告訴我。"},
+  {en:"Our top priority this quarter is customer satisfaction.",    zh:"我們本季的首要任務是客戶滿意度。"},
+  {en:"We need to evaluate the risks before we implement the plan.",zh:"在執行計畫前我們需要評估風險。"},
+  {en:"I'll coordinate with the engineering team on the specifications.",zh:"我將與工程團隊協調規格事宜。"},
+  {en:"The presentation was well received by the stakeholders.",    zh:"簡報受到了利害關係人的好評。"},
+  {en:"We should leverage our existing resources to optimize the workflow.",zh:"我們應該善用現有資源來優化工作流程。"},
+  {en:"A proactive approach helps us mitigate potential issues.",   zh:"積極主動的方法有助於緩解潛在問題。"},
+  {en:"Our goal is to deliver a scalable and sustainable solution.",zh:"我們的目標是提供可擴展且永續的解決方案。"},
+];
+const SRS_IV=[0,4*3600e3,86400e3,3*86400e3,7*86400e3,14*86400e3];
+const LV_UNLOCK={1:0,2:5,3:15,4:25};
+const LV_NM={1:'職場 B1',2:'進階 B1+',3:'專業 B2',4:'高階 B2+'};
+
+// ════════════ STATE ════════════
+let S={xp:0,streak:0,lastDate:null,srs:{},vcLv:1,vcMode:'flash',vcIdx:0,vcFlipped:false,qWord:null,qAns:false,lsIdx:0,lsCorrect:0,lsAns:false,spIdx:0,spTab:'follow',trIdx:0,trRev:false,dailyDone:0,dailyXp:0,totalC:0,totalA:0,mods:{v:0,l:0,s:0},dlStep:0,dlWords:[],dlListen:[],dlSpeak:0,dlDone:false,dlDate:null,unlockedLevels:{1:true,2:false,3:false,4:false}};
+let recObj=null;
+
+function load(){try{const d=localStorage.getItem('ela5');if(d)Object.assign(S,JSON.parse(d));if(!S.srs)S.srs={};if(!S.unlockedLevels)S.unlockedLevels={1:true,2:false,3:false,4:false};checkStreak();checkUnlocks(false);}catch(e){}}
+function save(){try{localStorage.setItem('ela5',JSON.stringify(S));}catch(e){}}
+function checkStreak(){const t=new Date().toDateString(),y=new Date(Date.now()-86400000).toDateString();if(S.lastDate!==t&&S.lastDate!==y&&S.lastDate)S.streak=0;}
+
+// ── SRS ──
+function sg(id){return S.srs[id]||(S.srs[id]={box:0,due:0,seen:0,correct:0}),S.srs[id];}
+function srsOk(id){const d=sg(id);d.box=Math.min(5,d.box+1);d.due=Date.now()+SRS_IV[d.box];d.correct++;d.seen++;}
+function srsNg(id){const d=sg(id);d.box=0;d.due=Date.now();d.seen++;}
+function srsDue(id){return(sg(id).due||0)<=Date.now();}
+function srsMas(id){return sg(id).box>=3;}
+function srsLbl(id){const d=sg(id);if(d.box===0)return '新';const r=d.due-Date.now();if(r<=0)return '待複習';const h=r/3600000;return h<24?`${Math.ceil(h)}h後`:`${Math.ceil(h/24)}天後`;}
+function srsStats(){let nw=0,due=0,mas=0;VOCAB.forEach(v=>{const d=S.srs[v.id];if(!d||d.box===0)nw++;else if(d.box>=3)mas++;else if(d.due<=Date.now())due++;});return{nw,due,mas};}
+
+function checkUnlocks(notify=true){
+  const mas=VOCAB.filter(v=>srsMas(v.id)).length;
+  const lv1=VOCAB.filter(v=>v.lv===1&&srsMas(v.id)).length;
+  const prev=JSON.stringify(S.unlockedLevels);
+  S.unlockedLevels[1]=true;S.unlockedLevels[2]=lv1>=LV_UNLOCK[2];S.unlockedLevels[3]=mas>=LV_UNLOCK[3];S.unlockedLevels[4]=mas>=LV_UNLOCK[4];
+  if(notify){const curr=JSON.stringify(S.unlockedLevels);if(prev!==curr)for(let lv=2;lv<=4;lv++)if(!JSON.parse(prev)[lv]&&S.unlockedLevels[lv]){setTimeout(()=>showUnlock(lv),800);break;}}
+}
+function showUnlock(lv){confetti();document.getElementById('up-ico').textContent='🔓';document.getElementById('up-t').textContent=`${LV_NM[lv]} 已解鎖！`;document.getElementById('up-m').textContent=`你已熟悉足夠多的單字，${LV_NM[lv]}的詞彙現在可以學習了！`;document.getElementById('up-pop').classList.add('on');document.getElementById('up-bg').classList.add('on');}
+function closeUnlock(){document.getElementById('up-pop').classList.remove('on');document.getElementById('up-bg').classList.remove('on');}
+
+// ── Navigation ──
+function goTo(sc){
+  document.querySelectorAll('.sc').forEach(s=>s.classList.remove('on'));
+  document.querySelectorAll('.ni').forEach(n=>n.classList.remove('on'));
+  document.getElementById('sc-'+sc).classList.add('on');
+  const ni=document.getElementById('n-'+sc);if(ni)ni.classList.add('on');
+  window.scrollTo(0,0);
+  ({home:initHome,lesson:initLesson,vocab:initVocab,listening:initListen,speaking:initSpeaking,progress:initProgress}[sc]||function(){})();
+}
+
+// ── HOME ──
+function initHome(){
+  const lv=Math.floor(S.xp/100)+1;
+  document.getElementById('h-streak').textContent=S.streak;
+  document.getElementById('h-xp').textContent=S.xp;
+  document.getElementById('h-words').textContent=Object.values(S.srs).filter(d=>d.seen>0).length;
+  document.getElementById('h-lv').textContent='Lv. '+lv;
+  const done=S.dlStep,total=10;
+  document.getElementById('lc-t').textContent=S.dlDone?'今日課程完成 ✓':done>0?'繼續今日課程':'開始今日課程';
+  document.getElementById('lc-s').textContent=S.dlDone?`今天獲得 ${S.dailyXp} XP`:`${done}/${total} 步驟完成，約 ${Math.max(1,Math.round((total-done)*0.8))} 分鐘`;
+  document.getElementById('lc-dots').innerHTML=Array.from({length:total},(_,i)=>`<div class="step-d${i<done?' done':i===done?' curr':''}"></div>`).join('');
+  const dw=VOCAB[new Date().getDate()%VOCAB.length];window._dw=dw;
+  document.getElementById('dw-w').textContent=dw.word;document.getElementById('dw-ph').textContent=dw.ph;
+  document.getElementById('dw-zh').textContent=dw.zh;document.getElementById('dw-ex').textContent=dw.ex;
+  const banner=document.getElementById('placement-banner');
+  if(banner) banner.style.display=S.placementDone?'none':'block';
+}
+
+// ── DAILY LESSON ──
+function initLesson(){
+  const today=new Date().toDateString();
+  if(S.dlDate!==today){S.dlDate=today;S.dlStep=0;S.dlDone=false;S.dailyXp=0;
+    const ul=VOCAB.filter(v=>S.unlockedLevels[v.lv]);
+    const due=ul.filter(v=>srsDue(v.id)).slice(0,5);
+    const fill=ul.filter(v=>!due.find(d=>d.id===v.id)).slice(0,5-due.length);
+    S.dlWords=[...due,...fill].slice(0,5).map(v=>v.id);
+    const seed=new Date().getDate();
+    S.dlListen=LISTEN.map((_,i)=>i).sort((a,b)=>((a*seed+7)%13)-((b*seed+3)%11)).slice(0,3);
+    S.dlSpeak=seed%SPEAK.length;save();
+  }
+  renderLesson();
+}
+function renderLesson(){
+  const step=S.dlStep,total=10;
+  document.getElementById('dl-stp').textContent=`步驟 ${Math.min(step+1,total)} / ${total}`;
+  document.getElementById('dl-bar').style.width=Math.round((step/total)*100)+'%';
+  document.getElementById('dl-xp').textContent='+'+S.dailyXp+' XP';
+  if(S.dlDone){renderLsnDone();return;}
+  const body=document.getElementById('dl-body');
+  if(step<5){
+    const w=VOCAB.find(v=>v.id===S.dlWords[step])||VOCAB[0];
+    const ew=w.word.replace(/'/g,"\\'"),ee=w.ex.replace(/'/g,"\\'");
+    body.innerHTML=`
+      <div style="text-align:center;font-size:12px;font-weight:600;color:var(--sub);letter-spacing:.5px;text-transform:uppercase;margin-bottom:10px">今日新單字 ${step+1}/5</div>
+      <div class="fcard" style="cursor:default;margin-bottom:14px">
+        <div class="fc-word">${w.word}</div>
+        <div class="fc-ph">${w.ph}</div>
+        <div class="fc-zh" style="font-size:21px;margin-top:6px">${w.zh}</div>
+        <div class="fc-ex">${w.ex}<br><span style="color:var(--sub)">${w.exZh}</span></div>
+      </div>
+      <div style="display:flex;justify-content:center;margin-bottom:16px">
+        <button class="snd" onclick="tts('${ew}');setTimeout(()=>tts('${ee}'),900)">🔊</button>
+      </div>
+      <button class="btn btn-p" onclick="dlVDone(${w.id})">知道了，繼續 →</button>`;
+    tts(w.word);setTimeout(()=>tts(w.ex),900);
+  }else if(step<8){
+    const qi=step-5,w=VOCAB.find(v=>v.id===S.dlWords[qi%S.dlWords.length])||VOCAB[0];
+    const pool=VOCAB.filter(v=>v.id!==w.id).sort(()=>Math.random()-.5).slice(0,3);
+    const opts=[...pool,w].sort(()=>Math.random()-.5);
+    const ew=w.word.replace(/'/g,"\\'");
+    body.innerHTML=`
+      <div style="text-align:center;font-size:12px;font-weight:600;color:var(--sub);letter-spacing:.5px;text-transform:uppercase;margin-bottom:10px">測驗 ${qi+1}/3</div>
+      <div class="card">
+        <div style="text-align:center;font-size:13px;color:var(--sub);margin-bottom:8px">選出正確的中文意思</div>
+        <div style="text-align:center;margin:14px 0 8px">
+          <div style="font-size:32px;font-weight:800;color:var(--p);letter-spacing:-.5px">${w.word}</div>
+          <button class="snd" style="width:34px;height:34px;font-size:14px;margin:8px auto 0" onclick="tts('${ew}')">🔊</button>
+        </div>
+        <div class="qopts" id="dl-opts">${opts.map(o=>`<button class="qopt" onclick="dlQAns(this,${o.id===w.id},${w.id})">${o.zh}</button>`).join('')}</div>
+        <div id="dl-fb" style="display:none;margin-top:12px;padding:13px;border-radius:14px">
+          <div id="dl-fb-t" style="font-weight:800;margin-bottom:4px"></div>
+          <div id="dl-fb-e" style="font-size:13px;color:var(--sub);margin-bottom:12px"></div>
+          <button class="btn btn-p" onclick="dlNext()">繼續 →</button>
+        </div>
+      </div>`;
+  }else if(step<10){
+    const li=S.dlListen[step-8],q=LISTEN[li];
+    const esc=q.s.replace(/'/g,"\\'");
+    body.innerHTML=`
+      <div style="text-align:center;font-size:12px;font-weight:600;color:var(--sub);letter-spacing:.5px;text-transform:uppercase;margin-bottom:10px">聽力 ${step-7}/2</div>
+      <div class="card" style="text-align:center">
+        <div class="wv p" id="dl-wv"><div class="wb"></div><div class="wb"></div><div class="wb"></div><div class="wb"></div><div class="wb"></div><div class="wb"></div><div class="wb"></div></div>
+        <button class="btn btn-p" id="dl-pb" onclick="dlPlayLs(${li})" style="margin-bottom:6px">🔊 播放句子</button>
+        <div style="font-size:12px;color:var(--sub);margin-bottom:12px">可多播放幾次確認</div>
+        <div class="qopts" id="dl-lo">${q.opts.map((o,i)=>`<button class="qopt" onclick="dlLsA(this,${i===q.ans},${li})">${o}</button>`).join('')}</div>
+        <div id="dl-lf" style="display:none;margin-top:12px;padding:13px;border-radius:14px">
+          <div id="dl-lf-t" style="font-weight:800;margin-bottom:4px"></div>
+          <div id="dl-lf-e" style="font-size:13px;color:var(--sub);margin-bottom:12px"></div>
+          <button class="btn btn-p" onclick="dlNext()">${step===9?'查看成績 →':'繼續 →'}</button>
+        </div>
+      </div>`;
+  }
+}
+function dlVDone(id){sg(id).seen++;addXP(3);S.dailyXp+=3;dlNext();}
+function dlNext(){S.dlStep++;if(S.dlStep>=10){S.dlDone=true;save();renderLsnDone();}else{save();renderLesson();}}
+function dlQAns(btn,ok,wid){
+  if(document.getElementById('dl-fb').style.display!=='none')return;
+  const w=VOCAB.find(v=>v.id===wid);
+  document.querySelectorAll('#dl-opts .qopt').forEach(b=>b.classList.add('off'));
+  if(ok){btn.classList.add('ok');srsOk(wid);addXP(6);S.dailyXp+=6;confetti();toast('+6 XP 答對了！','ok');}
+  else{btn.classList.add('ng');srsNg(wid);document.querySelectorAll('#dl-opts .qopt').forEach(b=>{if(b.textContent===w.zh)b.classList.add('ok')});toast('答錯了，記住它！','err');}
+  S.totalA++;if(ok)S.totalC++;checkUnlocks();save();
+  const fb=document.getElementById('dl-fb');fb.style.display='block';fb.style.background=ok?'rgba(6,214,160,.1)':'rgba(239,35,60,.07)';
+  document.getElementById('dl-fb-t').innerHTML=`<span style="color:${ok?'var(--gn)':'var(--err)'}">${ok?'✓ 正確！':'✗ 答錯了'}</span>`;
+  document.getElementById('dl-fb-e').textContent=`${w&&w.ex}  —  ${w&&w.exZh}`;
+}
+function dlPlayLs(li){
+  const q=LISTEN[li];document.getElementById('dl-wv').classList.remove('p');
+  const b=document.getElementById('dl-pb');if(b)b.textContent='🔊 播放中...';
+  tts(q.s,.85);setTimeout(()=>{const wv=document.getElementById('dl-wv'),bt=document.getElementById('dl-pb');if(wv)wv.classList.add('p');if(bt)bt.textContent='🔊 再播放一次';},q.s.split(' ').length*430+900);
+}
+function dlLsA(btn,ok,li){
+  if(document.getElementById('dl-lf').style.display!=='none')return;
+  const q=LISTEN[li];document.querySelectorAll('#dl-lo .qopt').forEach(b=>b.classList.add('off'));
+  if(ok){btn.classList.add('ok');addXP(8);S.dailyXp+=8;confetti();toast('+8 XP 聽懂了！','ok');}
+  else{btn.classList.add('ng');document.querySelectorAll('#dl-lo .qopt')[q.ans].classList.add('ok');toast('再聽一次！','err');}
+  S.totalA++;if(ok)S.totalC++;save();
+  const fb=document.getElementById('dl-lf');fb.style.display='block';fb.style.background=ok?'rgba(6,214,160,.1)':'rgba(239,35,60,.07)';
+  document.getElementById('dl-lf-t').innerHTML=`<span style="color:${ok?'var(--gn)':'var(--err)'}">${ok?'✓ 聽得很好！':'✗ 正確答案'}</span>`;
+  const esc=q.s.replace(/'/g,"\\'");
+  document.getElementById('dl-lf-e').innerHTML=`<span style="color:var(--p);font-weight:700">${q.s}</span><br>${q.zh}<br><button style="background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:4px 12px;font-size:12px;cursor:pointer;margin-top:7px;font-weight:600" onclick="tts('${esc}')">🔊 再聽一次</button>`;
+}
+function renderLsnDone(){
+  bumpDaily();
+  document.getElementById('dl-bar').style.width='100%';
+  document.getElementById('dl-stp').textContent='完成！';
+  document.getElementById('dl-body').innerHTML=`
+    <div class="res">
+      <div class="res-em">🎉</div>
+      <div class="res-sc">${S.dailyXp}</div>
+      <div class="res-lb">今日獲得 XP</div>
+      <div style="font-size:14px;color:var(--sub);margin-bottom:26px;line-height:1.6">太棒了！今日課程完成！<br>明天繼續保持連勝！</div>
+      <button class="btn btn-p" onclick="goTo('home')">回首頁</button>
+    </div>`;
+  confetti();
+}
+
+// ── VOCAB ──
+function getVL(){return VOCAB.filter(v=>v.lv===S.vcLv);}
+function initVocab(){
+  document.getElementById('lv-tabs').innerHTML=[1,2,3,4].map(lv=>{
+    const ul=S.unlockedLevels[lv];
+    return`<button class="tab${lv===S.vcLv?' on':''}${!ul?' locked':''}" onclick="setVL(${lv})">${ul?'':' 🔒 '}${LV_NM[lv]}</button>`;
+  }).join('');
+  const st=srsStats();
+  document.getElementById('srs-nw').textContent=st.nw;document.getElementById('srs-due').textContent=st.due;document.getElementById('srs-mas').textContent=st.mas;
+  const ov=document.getElementById('lock-ov2');if(ov)ov.remove();
+  if(!S.unlockedLevels[S.vcLv]){showLockOv();return;}
+  setVM(S.vcMode,true);
+}
+function showLockOv(){
+  document.getElementById('vm-flash').style.display='none';document.getElementById('vm-quiz').style.display='none';
+  const lv=S.vcLv,mas=VOCAB.filter(v=>srsMas(v.id)).length,lv1=VOCAB.filter(v=>v.lv===1&&srsMas(v.id)).length;
+  const need=lv===2?`熟悉 ${LV_UNLOCK[2]} 個 Lv.1 單字（已 ${lv1} 個）`:`共熟悉 ${LV_UNLOCK[lv]} 個單字（已 ${mas} 個）`;
+  const el=document.createElement('div');el.id='lock-ov2';el.className='lock-ov';
+  el.innerHTML=`<div class="lock-ico">🔒</div><div class="lock-nm">${LV_NM[lv]} 尚未解鎖</div><div class="lock-sb">需要：${need}</div><div class="lock-prog">💡 每完成今日課程並答題，就能累積熟悉度，解鎖更多等級！</div>`;
+  document.getElementById('vm-flash').parentElement.appendChild(el);
+}
+function setVL(lv){S.vcLv=lv;S.vcIdx=0;document.querySelectorAll('#lv-tabs .tab').forEach((b,i)=>b.classList.toggle('on',i+1===lv));const ov=document.getElementById('lock-ov2');if(ov)ov.remove();document.getElementById('vm-flash').style.display='';document.getElementById('vm-quiz').style.display='';if(!S.unlockedLevels[lv]){showLockOv();return;}setVM(S.vcMode,true);}
+function setVM(m,skip){
+  S.vcMode=m;
+  if(!skip){document.getElementById('tab-fc').className=m==='flash'?'tab on':'tab';document.getElementById('tab-qz').className=m==='quiz'?'tab on':'tab';}
+  document.getElementById('vm-flash').style.display=m==='flash'?'block':'none';
+  document.getElementById('vm-quiz').style.display=m==='quiz'?'block':'none';
+  if(!S.unlockedLevels[S.vcLv])return;
+  if(m==='flash')showFC();else showQz();
+}
+function showFC(){
+  const list=getVL();if(!list.length)return;
+  const due=list.filter(v=>srsDue(v.id));const src=due.length>0?due:list;
+  if(S.vcIdx>=src.length)S.vcIdx=0;
+  const w=src[S.vcIdx];S.vcFlipped=false;S._cw=w;
+  document.getElementById('fc-w').textContent=w.word;document.getElementById('fc-ph').textContent=w.ph;
+  document.getElementById('fc-zh').textContent=w.zh;document.getElementById('fc-ex').innerHTML=`<strong>${w.ex}</strong><br>${w.exZh}`;
+  document.getElementById('fc-b').textContent=srsLbl(w.id);
+  document.getElementById('fc-fr').style.display='flex';document.getElementById('fc-bk').style.display='none';
+  const st=srsStats();document.getElementById('srs-nw').textContent=st.nw;document.getElementById('srs-due').textContent=st.due;document.getElementById('srs-mas').textContent=st.mas;
+  document.getElementById('vc-cnt').textContent=`${S.vcIdx+1}/${src.length}`;
+}
+function flipFC(){
+  S.vcFlipped=!S.vcFlipped;
+  document.getElementById('fc-fr').style.display=S.vcFlipped?'none':'flex';
+  document.getElementById('fc-bk').style.display=S.vcFlipped?'block':'none';
+  if(S.vcFlipped&&S._cw){speakFC();addXP(1);bumpDC();}
+}
+function speakFC(){if(S._cw){tts(S._cw.word);setTimeout(()=>tts(S._cw.ex),950);}}
+function nextFC(){const l=getVL();S.vcIdx=(S.vcIdx+1)%l.length;S.vcFlipped=false;showFC();}
+function prevFC(){const l=getVL();S.vcIdx=(S.vcIdx-1+l.length)%l.length;S.vcFlipped=false;showFC();}
+function showQz(){
+  const list=getVL();if(list.length<4){document.getElementById('vm-quiz').innerHTML='<div style="text-align:center;padding:30px;color:var(--sub);font-weight:600">此等級單字不足 4 個</div>';return;}
+  const due=list.filter(v=>srsDue(v.id));S.qWord=(due.length>0?due:list)[Math.floor(Math.random()*(due.length||list.length))];
+  S.qAns=false;document.getElementById('qz-w').textContent=S.qWord.word;document.getElementById('qfb').style.display='none';
+  const pool=list.filter(v=>v.id!==S.qWord.id).sort(()=>Math.random()-.5).slice(0,3);
+  const opts=[...pool,S.qWord].sort(()=>Math.random()-.5);
+  document.getElementById('qopts').innerHTML=opts.map(w=>`<button class="qopt" onclick="ansQz(this,${w.id===S.qWord.id})">${w.zh}</button>`).join('');
+  document.getElementById('vc-cnt').textContent='答對 +5XP';
+}
+function ansQz(btn,ok){
+  if(S.qAns)return;S.qAns=true;document.querySelectorAll('#qopts .qopt').forEach(b=>b.classList.add('off'));
+  const w=S.qWord;
+  if(ok){btn.classList.add('ok');srsOk(w.id);addXP(5);bumpDC();S.totalC++;confetti();toast('+5 XP 答對了！','ok');tts(w.word);}
+  else{btn.classList.add('ng');srsNg(w.id);document.querySelectorAll('#qopts .qopt').forEach(b=>{if(b.textContent===w.zh)b.classList.add('ok')});toast('答錯了，記住它！','err');}
+  S.totalA++;checkUnlocks();save();
+  const fb=document.getElementById('qfb');fb.style.display='block';fb.style.background=ok?'rgba(6,214,160,.08)':'rgba(239,35,60,.06)';
+  document.getElementById('qfb-t').innerHTML=`<span style="color:${ok?'var(--gn)':'var(--err)'}">${ok?'✓ 正確！':'✗ 答錯了'}</span>`;
+  document.getElementById('qfb-e').textContent=`${w.ex}  —  ${w.exZh}`;
+  const st=srsStats();document.getElementById('srs-nw').textContent=st.nw;document.getElementById('srs-due').textContent=st.due;document.getElementById('srs-mas').textContent=st.mas;
+}
+function nextQz(){showQz();}
+
+// ── LISTEN ──
+function initListen(){S.lsIdx=0;S.lsCorrect=0;S.lsAns=false;renderLs();}
+function renderLs(){
+  const body=document.getElementById('ls-body');if(S.lsIdx>=LISTEN.length){showLsRes();return;}
+  const q=LISTEN[S.lsIdx];S.lsAns=false;
+  document.getElementById('ls-sc').textContent=S.lsCorrect+' 分';
+  body.innerHTML=`
+    <div class="ls-hdr">
+      <div class="ls-hdr-glow"></div>
+      <div class="ls-hdr-c">
+        <div style="font-size:12px;font-weight:600;color:rgba(255,255,255,.6);letter-spacing:.5px;text-transform:uppercase;margin-bottom:5px">聽力練習</div>
+        <div style="font-size:14px;font-weight:700;color:#fff;margin-bottom:10px">第 ${S.lsIdx+1} 題 / ${LISTEN.length} 題</div>
+        <div class="pw" style="height:6px;background:rgba(255,255,255,.2)"><div style="height:100%;background:#fff;border-radius:10px;width:${Math.round(S.lsIdx/LISTEN.length*100)}%;transition:width .4s"></div></div>
+      </div>
+    </div>
+    <div class="card" style="text-align:center">
+      <div class="wv p" id="ls-wv"><div class="wb"></div><div class="wb"></div><div class="wb"></div><div class="wb"></div><div class="wb"></div><div class="wb"></div><div class="wb"></div></div>
+      <button class="btn btn-p" id="ls-btn" onclick="playLs()" style="margin-bottom:7px">🔊 播放句子</button>
+      <div style="font-size:12px;color:var(--sub);margin-bottom:14px;font-weight:500">可多播放幾次確認</div>
+      <div class="qopts" id="ls-opts">${q.opts.map((o,i)=>`<button class="qopt" onclick="ansLs(this,${i===q.ans})">${o}</button>`).join('')}</div>
+    </div>
+    <div id="ls-fb" style="display:none" class="card"></div>`;
+}
+function playLs(){
+  const q=LISTEN[S.lsIdx];document.getElementById('ls-wv').classList.remove('p');
+  const b=document.getElementById('ls-btn');if(b)b.textContent='🔊 播放中...';
+  tts(q.s,.85);setTimeout(()=>{const wv=document.getElementById('ls-wv'),bt=document.getElementById('ls-btn');if(wv)wv.classList.add('p');if(bt)bt.textContent='🔊 再播放一次';},q.s.split(' ').length*430+900);
+}
+function ansLs(btn,ok){
+  if(S.lsAns)return;S.lsAns=true;document.querySelectorAll('#ls-opts .qopt').forEach(b=>b.classList.add('off'));
+  const q=LISTEN[S.lsIdx];
+  if(ok){btn.classList.add('ok');S.lsCorrect++;addXP(8);bumpDC();S.totalC++;confetti();toast('+8 XP 聽懂了！','ok');}
+  else{btn.classList.add('ng');document.querySelectorAll('#ls-opts .qopt')[q.ans].classList.add('ok');toast('再聽一次！','err');}
+  S.totalA++;save();
+  const fb=document.getElementById('ls-fb');fb.style.display='block';
+  const esc=q.s.replace(/'/g,"\\'");
+  fb.innerHTML=`<div style="margin-bottom:13px"><div style="font-weight:800;color:${ok?'var(--gn)':'var(--err)'};margin-bottom:5px;font-size:15px">${ok?'✓ 聽得很好！':'✗ 正確答案'}</div><div style="font-size:16px;color:var(--p);font-weight:700">${q.s}</div><div style="font-size:13px;color:var(--sub);margin-top:3px">${q.zh}</div><button style="background:var(--bg);border:1.5px solid var(--line);border-radius:10px;padding:5px 13px;font-size:12px;cursor:pointer;margin-top:9px;font-weight:600" onclick="tts('${esc}')">🔊 再聽一次</button></div><button class="btn btn-p" onclick="nextLs()">${S.lsIdx+1>=LISTEN.length?'查看成績':'繼續 →'}</button>`;
+}
+function nextLs(){S.lsIdx++;if(S.lsIdx>=LISTEN.length)showLsRes();else renderLs();}
+function showLsRes(){
+  const pct=Math.round(S.lsCorrect/LISTEN.length*100),em=pct>=80?'🎉':pct>=60?'👍':'💪',msg=pct>=80?'太棒了！聽力非常好！':pct>=60?'不錯！繼續練習！':'多聽多練，加油！';
+  document.getElementById('ls-body').innerHTML=`<div class="res"><div class="res-em">${em}</div><div class="res-sc">${pct}%</div><div class="res-lb">${S.lsCorrect}/${LISTEN.length} 題正確</div><div style="font-size:14px;color:var(--sub);margin-bottom:26px">${msg}</div><button class="btn btn-p" onclick="initListen()">再練習一次</button><button class="btn btn-o" style="margin-top:10px;width:100%" onclick="goTo('home')">回首頁</button></div>`;
+  S.mods.l=(S.mods.l||0)+S.lsCorrect;addXP(pct>=80?20:pct>=60?10:5);if(pct===100)confetti();save();
+}
+
+// ── SPEAKING ──
+function initSpeaking(){S.spIdx=0;S.trIdx=0;S.trRev=false;renderSpk();renderTr();}
+function setST(t){S.spTab=t;document.getElementById('sp-t1').className=t==='follow'?'tab on':'tab';document.getElementById('sp-t2').className=t==='trans'?'tab on':'tab';document.getElementById('sp-follow').style.display=t==='follow'?'block':'none';document.getElementById('sp-trans').style.display=t==='trans'?'block':'none';}
+function renderSpk(){if(S.spIdx>=SPEAK.length)S.spIdx=0;const s=SPEAK[S.spIdx];document.getElementById('sp-en').textContent=s.en;document.getElementById('sp-zh').textContent=s.zh;document.getElementById('sp-cnt').textContent=`${S.spIdx+1}/${SPEAK.length}`;const m=document.getElementById('mic');if(m)m.className='mic';document.getElementById('mic-st').textContent='點擊開始錄音';document.getElementById('rec-res').style.display='none';}
+function playSpk(){tts(SPEAK[S.spIdx].en,.82);}
+function nextSpk(){S.spIdx=(S.spIdx+1)%SPEAK.length;renderSpk();}
+function prevSpk(){S.spIdx=(S.spIdx-1+SPEAK.length)%SPEAK.length;renderSpk();}
+function togRec(){if(S.isRec)stopRec();else startRec();}
+function startRec(){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){document.getElementById('rec-res').style.display='block';document.getElementById('rec-res').innerHTML='<div style="font-size:13px;color:var(--sub);margin-bottom:9px">此瀏覽器不支援語音識別（建議用 Chrome）</div><div style="display:flex;gap:8px"><button class="btn btn-err" style="flex:1;font-size:13px" onclick="addXP(1);toast(\'繼續加油！\',\'err\')">✗ 沒說好</button><button class="btn btn-ok" style="flex:1;font-size:13px" onclick="addXP(5);confetti();toast(\'+5XP 說得好！\',\'ok\')">✓ 說得好</button></div>';return;}
+  recObj=new SR();recObj.lang='en-US';recObj.continuous=false;recObj.interimResults=true;S.isRec=true;
+  document.getElementById('mic').className='mic rec';document.getElementById('mic-st').textContent='錄音中… 請說英文';
+  recObj.onresult=e=>{
+    const tr=Array.from(e.results).map(r=>r[0].transcript).join('');
+    document.getElementById('rec-res').style.display='block';
+    if(e.results[0].isFinal){
+      const sim=simScore(SPEAK[S.spIdx].en,tr);
+      if(sim>0.55){document.getElementById('rec-res').innerHTML=`<div style="color:var(--gn);font-weight:600">✓ 說得很好！「${tr}」</div>`;addXP(5);confetti();toast('+5 XP 發音棒！','ok');S.mods.s=(S.mods.s||0)+1;S.totalC++;}
+      else{document.getElementById('rec-res').innerHTML=`<div style="color:var(--err);font-weight:600">識別：「${tr}」</div><div style="font-size:12px;color:var(--sub);margin-top:4px">說慢一點再試一次</div>`;addXP(2);toast('+2 XP 繼續練習！','err');}
+      S.totalA++;stopRec();save();
+    }else document.getElementById('rec-res').innerHTML=`<div style="color:var(--sub);font-style:italic">「${tr}…」</div>`;
+  };
+  recObj.onerror=e=>{stopRec();if(e.error==='not-allowed')toast('請允許麥克風權限','err');};
+  recObj.onend=()=>stopRec();recObj.start();
+}
+function stopRec(){if(recObj){try{recObj.stop();}catch(e){}recObj=null;}S.isRec=false;const m=document.getElementById('mic');if(m)m.className='mic';document.getElementById('mic-st').textContent='點擊開始錄音';}
+function simScore(a,b){const w1=a.toLowerCase().replace(/[^a-z\s]/g,'').split(/\s+/),w2=b.toLowerCase().replace(/[^a-z\s]/g,'').split(/\s+/);return w1.filter(w=>w2.includes(w)).length/Math.max(w1.length,w2.length);}
+function renderTr(){if(S.trIdx>=SPEAK.length)S.trIdx=0;const s=SPEAK[S.trIdx];document.getElementById('tr-zh').textContent=s.zh;document.getElementById('tr-ans').style.display='none';document.getElementById('tr-btn').style.display='block';S.trRev=false;}
+function revTr(){const s=SPEAK[S.trIdx];document.getElementById('tr-en').textContent=s.en;document.getElementById('tr-ans').style.display='block';document.getElementById('tr-btn').style.display='none';S.trRev=true;addXP(2);bumpDC();tts(s.en,.82);save();}
+function playTr(){tts(SPEAK[S.trIdx].en,.82);}
+function judTr(ok){if(ok){addXP(5);confetti();toast('+5 XP 答對了！','ok');S.totalC++;S.mods.s=(S.mods.s||0)+1;}else{addXP(1);toast('+1 XP 繼續練習！','err');}S.totalA++;save();nextTr();}
+function nextTr(){S.trIdx=(S.trIdx+1)%SPEAK.length;renderTr();}
+function prevTr(){S.trIdx=(S.trIdx-1+SPEAK.length)%SPEAK.length;renderTr();}
+
+// ── PROGRESS ──
+function initProgress(){
+  const seen=Object.values(S.srs).filter(d=>d.seen>0).length,acc=S.totalA>0?Math.round(S.totalC/S.totalA*100):0;
+  document.getElementById('pg-w').textContent=seen;document.getElementById('pg-acc').textContent=acc+'%';document.getElementById('pg-str').textContent=S.streak;
+  document.getElementById('pg-xp').textContent=S.xp+' XP';
+  const lv=Math.floor(S.xp/100)+1,rem=S.xp%100;
+  document.getElementById('pg-xpb').style.width=rem+'%';document.getElementById('pg-lv').textContent=`Lv.${lv} — 距下一等級還需 ${100-rem} XP`;
+  const st=srsStats();document.getElementById('pg-new').textContent=st.nw;document.getElementById('pg-due').textContent=st.due;document.getElementById('pg-mas').textContent=st.mas;
+  const mas=VOCAB.filter(v=>srsMas(v.id)).length,lv1=VOCAB.filter(v=>v.lv===1&&srsMas(v.id)).length;
+  const mils=[
+    {ico:'⭐',nm:'初學者',sb:`熟悉 5 個 Lv.1 單字，解鎖 Lv.2（已 ${lv1}/5）`,done:lv1>=5},
+    {ico:'🌟',nm:'進階者',sb:`共熟悉 15 個單字，解鎖 Lv.3（已 ${mas}/15）`,done:mas>=15},
+    {ico:'🏆',nm:'中級生',sb:`共熟悉 25 個單字，解鎖 Lv.4（已 ${mas}/25）`,done:mas>=25},
+    {ico:'💎',nm:'英語達人',sb:`全部 55 個單字全部熟悉（已 ${mas}/55）`,done:mas>=55},
+  ];
+  document.getElementById('milestones').innerHTML=mils.map(m=>`<div class="ms"><div class="ms-ico">${m.ico}</div><div><div class="ms-nm">${m.nm}</div><div class="ms-sb">${m.sb}</div></div><div class="${m.done?'ms-ok':'ms-lk'}">${m.done?'✓':'🔒'}</div></div>`).join('');
+  document.getElementById('pg-mods').innerHTML=`<div style="display:flex;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--line)"><span style="font-weight:500">📚 單字學習</span><span style="font-weight:800;color:var(--p)">${seen} 個</span></div><div style="display:flex;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--line)"><span style="font-weight:500">🎧 聽力練習</span><span style="font-weight:800;color:var(--p)">${S.mods.l||0} 題</span></div><div style="display:flex;justify-content:space-between;padding:11px 0"><span style="font-weight:500">🎤 口說練習</span><span style="font-weight:800;color:var(--p)">${S.mods.s||0} 次</span></div>`;
+}
+function resetAll(){if(!confirm('確定要重設全部進度嗎？'))return;localStorage.removeItem('ela5');location.reload();}
+
+// ── UTILS ──
+function tts(text,rate=1){
+  if(!text||!window.speechSynthesis)return;
+  window.speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance(text);u.lang='en-US';u.rate=rate;u.pitch=1;
+  const vv=window.speechSynthesis.getVoices();
+  const v=vv.find(v=>v.lang==='en-US'&&/samantha|karen|moira/i.test(v.name))||vv.find(v=>v.lang==='en-US')||vv.find(v=>v.lang.startsWith('en'));
+  if(v)u.voice=v;window.speechSynthesis.speak(u);
+}
+function addXP(n){S.xp+=n;document.getElementById('h-xp').textContent=S.xp;document.getElementById('h-lv').textContent='Lv. '+(Math.floor(S.xp/100)+1);save();}
+function bumpDaily(){const today=new Date().toDateString();if(S.lastDate!==today){S.lastDate=today;S.streak=Math.max(1,(S.streak||0)+1);S.dailyDone=0;document.getElementById('h-streak').textContent=S.streak;}save();}
+function bumpDC(){const today=new Date().toDateString();if(S.lastDate!==today){S.lastDate=today;S.streak=Math.max(1,(S.streak||0)+1);S.dailyDone=0;document.getElementById('h-streak').textContent=S.streak;}S.dailyDone++;save();}
+function toast(msg,type=''){const el=document.getElementById('toast');el.textContent=msg;el.className='toast'+(type?' '+type:'');el.classList.add('on');setTimeout(()=>el.classList.remove('on'),2400);}
+function confetti(){
+  const cel=document.getElementById('cel');cel.innerHTML='';
+  const cols=['#7C6FF7','#B8B0FF','#06D6A0','#FF9E00','#F72585','#00BBF9','#fff'];
+  for(let i=0;i<26;i++){
+    const p=document.createElement('div');p.className='cp';
+    const sz=5+Math.random()*10;
+    p.style.cssText=`left:${Math.random()*100}%;top:${Math.random()*18}%;background:${cols[i%cols.length]};width:${sz}px;height:${sz}px;border-radius:${Math.random()>.45?'50%':'3px'};animation-delay:${Math.random()*.55}s;animation-duration:${1.3+Math.random()*.9}s;box-shadow:0 0 ${sz}px ${cols[i%cols.length]}55`;
+    cel.appendChild(p);
+  }
+  setTimeout(()=>cel.innerHTML='',2400);
+}
+// ════════════ PLACEMENT TEST ════════════
+const PLACEMENT = [
+  // Tier 1 — B1 基礎商務詞彙
+  { q:'「我們需要趕上截止日期。」\nWe need to meet the ___.',
+    opts:['schedule','deadline','budget','feedback'], ans:1, tier:1,
+    hint:'deadline（截止日期）— We need to meet the deadline. 趕上截止日期。' },
+  { q:'「主管批准了這份提案。」\nThe manager ___ the proposal.',
+    opts:['reviewed','confirmed','approved','updated'], ans:2, tier:1,
+    hint:'approved（批准）— The manager approved the proposal. 注意 approve = 正式批准。' },
+  { q:'「我們本季的首要任務是客戶滿意度。」\nCustomer satisfaction is our top ___.',
+    opts:['target','strategy','priority','solution'], ans:2, tier:1,
+    hint:'priority（優先事項）— top priority 是「最重要的事」。' },
+
+  // Tier 2 — B1+ 進階職場詞彙
+  { q:'「她的簡報讓董事會印象深刻。」\nHer ___ impressed the board.',
+    opts:['proposal','presentation','specification','integration'], ans:1, tier:2,
+    hint:'presentation（簡報）— 在董事會面前做的簡報，不是 proposal（提案）。' },
+  { q:'「我們需要仔細評估風險。」\nWe need to ___ the risks carefully.',
+    opts:['monitor','delegate','evaluate','coordinate'], ans:2, tier:2,
+    hint:'evaluate（評估）— evaluate risks 分析評估風險，monitor 是持續監控。' },
+  { q:'「所有利害關係人都已被告知這項變化。」\nAll ___ were informed of the change.',
+    opts:['milestones','stakeholders','benchmarks','requirements'], ans:1, tier:2,
+    hint:'stakeholders（利害關係人）— 指對專案有利益關係的人或組織。' },
+
+  // Tier 3 — B2 進階專業 & 句型
+  { q:'「我們採用敏捷開發流程。」\nWe follow an ___ development process.',
+    opts:['scalable','proactive','agile','holistic'], ans:2, tier:3,
+    hint:'agile（敏捷的）— agile development 是軟體業常見的迭代開發方式。' },
+  { q:'「我們致力於永續增長。」\nWe aim for ___ growth.',
+    opts:['transparent','sustainable','resilient','innovative'], ans:1, tier:3,
+    hint:'sustainable（永續的）— sustainable growth 強調長期可維持的增長。' },
+  { q:'「我們需要精簡我們的運營。」\nWe need to ___ our operations.',
+    opts:['leverage','consolidate','streamline','mitigate'], ans:2, tier:3,
+    hint:'streamline（精簡）— streamline operations 去除不必要的流程，提高效率。' },
+
+  // Tier 4 — B2+ 高階句型 & 語境判斷
+  { q:'「如果我們能善用協同效應，就能超越競爭對手。」哪句英文正確？',
+    opts:[
+      'If we can leverage the synergy, we will surpass our competitors.',
+      'If we can leverages the synergy, we will surpass our competitors.',
+      'If we leverage the synergy, we would surpassed our competitors.',
+      'If we can leverage the synergy, we surpassed our competitors.'
+    ], ans:0, tier:4,
+    hint:'If + 現在式助動詞，主句用 will + 原形。leverage 後不加 s，surpass 用原形。' },
+  { q:'「近年來，這已成為業界的新典範。」哪句英文正確？',
+    opts:[
+      'In recent years, this has became the new paradigm in the industry.',
+      'In recent years, this have become the new paradigm in the industry.',
+      'In recent years, this has become the new paradigm in the industry.',
+      'In recent years, this had become the new paradigm for industry.'
+    ], ans:2, tier:4,
+    hint:'現在完成式：has + 過去分詞 (become)，不是 became。this 是單數，用 has。' },
+  { q:'「這項創新技術已徹底顛覆了整個產業。」哪句英文正確？',
+    opts:[
+      'This innovation technology has completely disrupted the entire industry.',
+      'This innovative technology has completely disrupted the entire industry.',
+      'This innovative technology had completely disrupted the entire industry.',
+      'This innovative technology has completely disrupt the entire industry.'
+    ], ans:1, tier:4,
+    hint:'innovative（形容詞）修飾 technology；has + 過去分詞 disrupted 表示持續影響至今。' },
+];
+
+// IDs that should be marked mastered when a tier is passed
+const TIER_WORD_IDS = {
+  1: [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20],   // lv1 詞彙
+  2: [21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37],   // lv2 詞彙
+  3: [38,39,40,41,42,43,44,45,46,47],                         // lv3 詞彙
+};
+const TIER_COLORS = {1:'#06D6A0',2:'#00BBF9',3:'#FF9E00',4:'#F72585'};
+const TIER_NAMES  = {1:'Tier 1 — B1 基礎商務',2:'Tier 2 — B1+ 職場進階',3:'Tier 3 — B2 專業表達',4:'Tier 4 — B2+ 高階句型'};
+
+let PL = { idx:0, answers:[], tierCorrect:{1:0,2:0,3:0,4:0} };
+
+function startPlacement(){
+  PL={idx:0,answers:[],tierCorrect:{1:0,2:0,3:0,4:0}};
+  document.getElementById('pl-intro').style.display='none';
+  document.getElementById('pl-quiz').style.display='block';
+  document.getElementById('pl-result').style.display='none';
+  renderPL();
+}
+function renderPL(){
+  const q=PLACEMENT[PL.idx];
+  document.getElementById('pl-stp').textContent=`第 ${PL.idx+1} 題 / ${PLACEMENT.length} 題`;
+  document.getElementById('pl-tier').textContent=TIER_NAMES[q.tier];
+  document.getElementById('pl-bar').style.width=Math.round((PL.idx/PLACEMENT.length)*100)+'%';
+  // Tier label pill
+  const tl=document.getElementById('pl-tier-label');
+  tl.textContent=TIER_NAMES[q.tier];
+  tl.style.background=TIER_COLORS[q.tier]+'22';
+  tl.style.color=TIER_COLORS[q.tier];
+  // Question
+  document.getElementById('pl-q').textContent=q.q;
+  // Options (single column for readability)
+  document.getElementById('pl-opts').innerHTML=q.opts.map((o,i)=>
+    `<button class="qopt" style="text-align:left;padding:14px 16px" onclick="answerPL(this,${i===q.ans})">${o}</button>`
+  ).join('');
+  document.getElementById('pl-fb').style.display='none';
+}
+function answerPL(btn,ok){
+  document.querySelectorAll('#pl-opts .qopt').forEach(b=>b.classList.add('off'));
+  const q=PLACEMENT[PL.idx];
+  if(ok){btn.classList.add('ok');PL.tierCorrect[q.tier]++;confetti();toast('答對了！','ok');}
+  else{btn.classList.add('ng');document.querySelectorAll('#pl-opts .qopt')[q.ans].classList.add('ok');toast('答錯了','err');}
+  PL.answers.push(ok);
+  // Show feedback
+  const fb=document.getElementById('pl-fb');fb.style.display='block';
+  fb.style.background=ok?'rgba(6,214,160,.08)':'rgba(239,35,60,.06)';
+  document.getElementById('pl-fb-t').innerHTML=`<span style="color:${ok?'var(--gn)':'var(--err)'}">${ok?'✓ 正確！':'✗ 答錯了'}</span>`;
+  document.getElementById('pl-fb-e').textContent=q.hint;
+  const isLast=PL.idx>=PLACEMENT.length-1;
+  document.getElementById('pl-next-btn').textContent=isLast?'查看結果 →':'繼續 →';
+}
+function plNext(){
+  PL.idx++;
+  if(PL.idx>=PLACEMENT.length){showPLResult();return;}
+  renderPL();
+}
+function showPLResult(){
+  document.getElementById('pl-quiz').style.display='none';
+  document.getElementById('pl-result').style.display='block';
+  const tc=PL.tierCorrect;
+  const pass={1:tc[1]>=2,2:tc[2]>=2,3:tc[3]>=2,4:tc[4]>=2};
+  const total=PL.answers.filter(Boolean).length;
+  const pct=Math.round(total/PLACEMENT.length*100);
+
+  // Determine level
+  let startLv=1,levelName='職場 B1',em='📚';
+  if(pass[4]){startLv=4;levelName='高階 B2+';em='🏆';}
+  else if(pass[3]){startLv=3;levelName='專業 B2';em='🌟';}
+  else if(pass[2]){startLv=2;levelName='進階 B1+';em='⭐';}
+
+  document.getElementById('pl-res-em').textContent=em;
+  document.getElementById('pl-res-t').textContent=`你的程度：${levelName}`;
+  document.getElementById('pl-res-sub').textContent=`答對 ${total}/${PLACEMENT.length} 題（${pct}%）`;
+
+  // Unlock levels & mark words
+  S.unlockedLevels[1]=true;
+  if(pass[1]||pass[2]||pass[3]||pass[4]){S.unlockedLevels[2]=true;}
+  if(pass[2]||pass[3]||pass[4]){S.unlockedLevels[3]=true;}
+  if(pass[3]||pass[4]){S.unlockedLevels[4]=true;}
+
+  // Mark mastered words in SRS (box=4 = known, review in 7 days)
+  if(pass[1])TIER_WORD_IDS[1].forEach(id=>{const d=sg(id);if(d.box<4){d.box=4;d.due=Date.now()+SRS_IV[4];d.seen=1;d.correct=1;}});
+  if(pass[2])TIER_WORD_IDS[2].forEach(id=>{const d=sg(id);if(d.box<3){d.box=3;d.due=Date.now()+SRS_IV[3];d.seen=1;d.correct=1;}});
+  if(pass[3])TIER_WORD_IDS[3].forEach(id=>{const d=sg(id);if(d.box<3){d.box=3;d.due=Date.now()+SRS_IV[3];d.seen=1;d.correct=1;}});
+
+  S.placementDone=true;save();
+
+  // Detail card
+  const rows=[1,2,3,4].map(t=>{
+    const c=tc[t],p=c>=2;
+    return `<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)">
+      <div style="width:10px;height:10px;border-radius:50%;background:${TIER_COLORS[t]}"></div>
+      <div style="flex:1;font-size:13px;font-weight:600">${TIER_NAMES[t]}</div>
+      <div style="font-size:13px;font-weight:700;color:${p?'var(--gn)':'var(--err)'}">${c}/3 ${p?'✓ 通過':'✗'}</div>
+    </div>`;
+  }).join('');
+  document.getElementById('pl-res-detail').innerHTML=`<div class="card-t">各層級成績</div>${rows}`;
+
+  // Unlocked levels
+  const ul=[1,2,3,4].filter(l=>S.unlockedLevels[l]);
+  document.getElementById('pl-unlocked').innerHTML=`
+    <div class="card-t" style="color:var(--gn)">🔓 已解鎖的學習等級</div>
+    ${ul.map(l=>`<div style="display:flex;align-items:center;gap:8px;padding:8px 0;font-size:14px;font-weight:600"><span style="font-size:18px">✅</span>${LV_NM[l]}</div>`).join('')}
+    ${startLv>=2?`<div style="margin-top:10px;padding:12px;background:var(--bg);border-radius:12px;font-size:13px;color:var(--sub);line-height:1.6">💡 已熟悉的基礎單字被標為「已知」，系統不會重複考你，讓你直接專注在新詞彙上。</div>`:''}
+  `;
+
+  if(pct===100)confetti();
+  // Award XP for taking test
+  addXP(total*3);
+}
+function resetPlacement(){
+  S.placementDone=false;save();
+  PL={idx:0,answers:[],tierCorrect:{1:0,2:0,3:0,4:0}};
+  document.getElementById('pl-intro').style.display='block';
+  document.getElementById('pl-quiz').style.display='none';
+  document.getElementById('pl-result').style.display='none';
+}
+// ════════════ END PLACEMENT TEST ════════════
+
+window.speechSynthesis&&speechSynthesis.addEventListener('voiceschanged',()=>{});
+load();initHome();
+</script>
+</body>
+</html>
