@@ -619,6 +619,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',sa
     <div class="card-t">各模組紀錄</div>
     <div id="pg-mods"></div>
   </div>
+  <!-- Voice debug -->
+  <div class="card" style="margin-top:10px">
+    <div class="card-t">語音設定</div>
+    <div style="font-size:13px;color:var(--sub);margin-bottom:10px">點下方按鈕確認目前使用的英語聲音，以及裝置上可用的聲音清單。</div>
+    <button class="btn btn-p" style="width:100%;margin-bottom:8px" onclick="listVoices()">檢查目前使用的聲音</button>
+  </div>
   <button class="btn" style="width:100%;margin-top:10px;background:rgba(239,35,60,.08);color:var(--err);border:1.5px solid rgba(239,35,60,.15)" onclick="resetAll()">重設全部進度</button>
 </div>
 
@@ -1183,21 +1189,16 @@ function resetAll(){if(!confirm('確定要重設全部進度嗎？'))return;loca
 // ── UTILS ──
 // ── TTS voice cache ──
 let _ttsVoice=null;
+let _allVoices=[];
 function _pickVoice(){
-  const vv=window.speechSynthesis.getVoices();
+  const vv=_allVoices.length?_allVoices:window.speechSynthesis.getVoices();
   if(!vv.length)return null;
   const en=vv.filter(v=>v.lang==='en-US'||v.lang==='en_US'||v.lang.startsWith('en-US'));
   const enAll=en.length?en:vv.filter(v=>v.lang.startsWith('en'));
-  // Priority 1: Premium (iOS highest quality)
-  const p1=enAll.find(v=>/premium/i.test(v.name));
-  if(p1)return p1;
-  // Priority 2: Enhanced (iOS high quality)
-  const p2=enAll.find(v=>/enhanced/i.test(v.name));
-  if(p2)return p2;
-  // Priority 3: Known good iOS/macOS voices by name
-  const names=['Ava','Nathan','Allison','Tom','Alex','Samantha','Karen','Moira','Serena','Siri'];
+  const p1=enAll.find(v=>/premium/i.test(v.name));if(p1)return p1;
+  const p2=enAll.find(v=>/enhanced/i.test(v.name));if(p2)return p2;
+  const names=['Ava','Nathan','Allison','Tom','Alex','Samantha','Karen','Moira','Serena'];
   for(const n of names){const v=enAll.find(v=>v.name.startsWith(n));if(v)return v;}
-  // Fallback: any en-US then any English
   return enAll[0]||vv.find(v=>v.lang.startsWith('en'))||null;
 }
 function tts(text,rate=1){
@@ -1205,9 +1206,16 @@ function tts(text,rate=1){
   window.speechSynthesis.cancel();
   const u=new SpeechSynthesisUtterance(text);
   u.lang='en-US';u.rate=rate;u.pitch=1;
-  const v=_ttsVoice||_pickVoice();
-  if(v){u.voice=v;u.lang=v.lang;}
+  // If voice not cached yet, try once more (iOS lazy-loads voices)
+  if(!_ttsVoice){_allVoices=window.speechSynthesis.getVoices();_ttsVoice=_pickVoice();}
+  if(_ttsVoice){u.voice=_ttsVoice;u.lang=_ttsVoice.lang;}
   window.speechSynthesis.speak(u);
+}
+// For debugging: show available voices in console
+function listVoices(){
+  const vv=window.speechSynthesis.getVoices().filter(v=>v.lang.startsWith('en'));
+  console.log('EN voices:',vv.map(v=>v.name+'|'+v.lang).join('\n'));
+  alert('目前選用：'+(_ttsVoice?_ttsVoice.name+'('+_ttsVoice.lang+')':'未設定')+'\n\n可用聲音:\n'+vv.map(v=>v.name).join('\n'));
 }
 function addXP(n){S.xp+=n;document.getElementById('h-xp').textContent=S.xp;document.getElementById('h-lv').textContent='Lv. '+(Math.floor(S.xp/100)+1);save();}
 function bumpDaily(){const today=new Date().toDateString();if(S.lastDate!==today){S.lastDate=today;S.streak=Math.max(1,(S.streak||0)+1);S.dailyDone=0;document.getElementById('h-streak').textContent=S.streak;}save();}
@@ -1405,10 +1413,13 @@ function resetPlacement(){
 // ════════════ END PLACEMENT TEST ════════════
 
 if(window.speechSynthesis){
-  const _cacheVoice=()=>{_ttsVoice=_pickVoice();};
+  const _cacheVoice=()=>{
+    _allVoices=window.speechSynthesis.getVoices();
+    if(_allVoices.length){_ttsVoice=_pickVoice();}
+  };
   speechSynthesis.addEventListener('voiceschanged',_cacheVoice);
-  // iOS sometimes fires it late; also try immediately
-  setTimeout(_cacheVoice,300);
+  // iOS lazy-loads voices — retry at 300ms, 800ms, 2s
+  [300,800,2000].forEach(t=>setTimeout(_cacheVoice,t));
 }
 load();initHome();
 </script>
