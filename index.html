@@ -1187,35 +1187,69 @@ function initProgress(){
 function resetAll(){if(!confirm('確定要重設全部進度嗎？'))return;localStorage.removeItem('ela5');location.reload();}
 
 // ── UTILS ──
-// ── TTS voice cache ──
-let _ttsVoice=null;
-let _allVoices=[];
+// ════════ Google Cloud TTS ════════
+const GCLOUD_KEY='AIzaSyCvW4hwLSVwtBmPO84ZpOHgHIErmaxE5uY';
+const GCLOUD_VOICE='en-US-Neural2-J'; // 美式英語男聲（自然清晰）
+const _ttsCache={};
+let _ttsQueue=Promise.resolve();
+
+async function tts(text,rate=1){
+  if(!text)return;
+  // 有 API Key → 用 Google Cloud TTS
+  if(GCLOUD_KEY){
+    _ttsQueue=_ttsQueue.then(()=>_gcTts(text,rate)).catch(()=>_wsTts(text,rate));
+    return;
+  }
+  // 無 API Key → fallback Web Speech API
+  _wsTts(text,rate);
+}
+
+async function _gcTts(text,rate){
+  const key=text+'|'+rate;
+  if(!_ttsCache[key]){
+    const res=await fetch(
+      `https://texttospeech.googleapis.com/v1/text:synthesize?key=${GCLOUD_KEY}`,
+      {method:'POST',headers:{'Content-Type':'application/json'},
+       body:JSON.stringify({
+         input:{text},
+         voice:{languageCode:'en-US',name:GCLOUD_VOICE},
+         audioConfig:{audioEncoding:'MP3',speakingRate:rate,pitch:0}
+       })}
+    );
+    const d=await res.json();
+    if(d.error)throw new Error(d.error.message);
+    _ttsCache[key]=d.audioContent;
+  }
+  await new Promise((resolve,reject)=>{
+    const a=new Audio('data:audio/mp3;base64,'+_ttsCache[key]);
+    a.onended=resolve;a.onerror=reject;
+    a.play().catch(reject);
+  });
+}
+
+// Fallback: Web Speech API
+let _ttsVoice=null,_allVoices=[];
 function _pickVoice(){
   const vv=_allVoices.length?_allVoices:window.speechSynthesis.getVoices();
   if(!vv.length)return null;
-  const en=vv.filter(v=>v.lang==='en-US'||v.lang==='en_US'||v.lang.startsWith('en-US'));
+  const en=vv.filter(v=>v.lang.startsWith('en-US'));
   const enAll=en.length?en:vv.filter(v=>v.lang.startsWith('en'));
-  const p1=enAll.find(v=>/premium/i.test(v.name));if(p1)return p1;
-  const p2=enAll.find(v=>/enhanced/i.test(v.name));if(p2)return p2;
-  const names=['Ava','Nathan','Allison','Tom','Alex','Samantha','Karen','Moira','Serena'];
+  const names=['Ava','Nathan','Daniel','Karen','Moira','Samantha'];
   for(const n of names){const v=enAll.find(v=>v.name.startsWith(n));if(v)return v;}
-  return enAll[0]||vv.find(v=>v.lang.startsWith('en'))||null;
+  return enAll[0]||null;
 }
-function tts(text,rate=1){
-  if(!text||!window.speechSynthesis)return;
+function _wsTts(text,rate=1){
+  if(!window.speechSynthesis)return;
   window.speechSynthesis.cancel();
   const u=new SpeechSynthesisUtterance(text);
   u.lang='en-US';u.rate=rate;u.pitch=1;
-  // If voice not cached yet, try once more (iOS lazy-loads voices)
   if(!_ttsVoice){_allVoices=window.speechSynthesis.getVoices();_ttsVoice=_pickVoice();}
   if(_ttsVoice){u.voice=_ttsVoice;u.lang=_ttsVoice.lang;}
   window.speechSynthesis.speak(u);
 }
-// For debugging: show available voices in console
 function listVoices(){
-  const vv=window.speechSynthesis.getVoices().filter(v=>v.lang.startsWith('en'));
-  console.log('EN voices:',vv.map(v=>v.name+'|'+v.lang).join('\n'));
-  alert('目前選用：'+(_ttsVoice?_ttsVoice.name+'('+_ttsVoice.lang+')':'未設定')+'\n\n可用聲音:\n'+vv.map(v=>v.name).join('\n'));
+  const cur=GCLOUD_KEY?`Google Cloud TTS（${GCLOUD_VOICE}）`:`Web Speech API（${_ttsVoice?_ttsVoice.name:'未設定'}）`;
+  alert('目前使用：'+cur+(GCLOUD_KEY?'\nAPI Key 已設定 ✓':'\n⚠️ 尚未設定 Google Cloud API Key'));
 }
 function addXP(n){S.xp+=n;document.getElementById('h-xp').textContent=S.xp;document.getElementById('h-lv').textContent='Lv. '+(Math.floor(S.xp/100)+1);save();}
 function bumpDaily(){const today=new Date().toDateString();if(S.lastDate!==today){S.lastDate=today;S.streak=Math.max(1,(S.streak||0)+1);S.dailyDone=0;document.getElementById('h-streak').textContent=S.streak;}save();}
