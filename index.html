@@ -1181,13 +1181,33 @@ function initProgress(){
 function resetAll(){if(!confirm('確定要重設全部進度嗎？'))return;localStorage.removeItem('ela5');location.reload();}
 
 // ── UTILS ──
+// ── TTS voice cache ──
+let _ttsVoice=null;
+function _pickVoice(){
+  const vv=window.speechSynthesis.getVoices();
+  if(!vv.length)return null;
+  const en=vv.filter(v=>v.lang==='en-US'||v.lang==='en_US'||v.lang.startsWith('en-US'));
+  const enAll=en.length?en:vv.filter(v=>v.lang.startsWith('en'));
+  // Priority 1: Premium (iOS highest quality)
+  const p1=enAll.find(v=>/premium/i.test(v.name));
+  if(p1)return p1;
+  // Priority 2: Enhanced (iOS high quality)
+  const p2=enAll.find(v=>/enhanced/i.test(v.name));
+  if(p2)return p2;
+  // Priority 3: Known good iOS/macOS voices by name
+  const names=['Ava','Nathan','Allison','Tom','Alex','Samantha','Karen','Moira','Serena','Siri'];
+  for(const n of names){const v=enAll.find(v=>v.name.startsWith(n));if(v)return v;}
+  // Fallback: any en-US then any English
+  return enAll[0]||vv.find(v=>v.lang.startsWith('en'))||null;
+}
 function tts(text,rate=1){
   if(!text||!window.speechSynthesis)return;
   window.speechSynthesis.cancel();
-  const u=new SpeechSynthesisUtterance(text);u.lang='en-US';u.rate=rate;u.pitch=1;
-  const vv=window.speechSynthesis.getVoices();
-  const v=vv.find(v=>v.lang==='en-US'&&/samantha|karen|moira/i.test(v.name))||vv.find(v=>v.lang==='en-US')||vv.find(v=>v.lang.startsWith('en'));
-  if(v)u.voice=v;window.speechSynthesis.speak(u);
+  const u=new SpeechSynthesisUtterance(text);
+  u.lang='en-US';u.rate=rate;u.pitch=1;
+  const v=_ttsVoice||_pickVoice();
+  if(v){u.voice=v;u.lang=v.lang;}
+  window.speechSynthesis.speak(u);
 }
 function addXP(n){S.xp+=n;document.getElementById('h-xp').textContent=S.xp;document.getElementById('h-lv').textContent='Lv. '+(Math.floor(S.xp/100)+1);save();}
 function bumpDaily(){const today=new Date().toDateString();if(S.lastDate!==today){S.lastDate=today;S.streak=Math.max(1,(S.streak||0)+1);S.dailyDone=0;document.getElementById('h-streak').textContent=S.streak;}save();}
@@ -1384,7 +1404,12 @@ function resetPlacement(){
 }
 // ════════════ END PLACEMENT TEST ════════════
 
-window.speechSynthesis&&speechSynthesis.addEventListener('voiceschanged',()=>{});
+if(window.speechSynthesis){
+  const _cacheVoice=()=>{_ttsVoice=_pickVoice();};
+  speechSynthesis.addEventListener('voiceschanged',_cacheVoice);
+  // iOS sometimes fires it late; also try immediately
+  setTimeout(_cacheVoice,300);
+}
 load();initHome();
 </script>
 </body>
