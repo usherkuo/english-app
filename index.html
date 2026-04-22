@@ -505,6 +505,9 @@ body{
           </div>
         </div>
       </div>
+      <div style="text-align:center;padding:18px 0 6px;font-size:12px;color:var(--text-tertiary);opacity:.5;letter-spacing:.3px">
+        A1.11_20260422 Beta
+      </div>
     </div>
 
     <!-- ══ DAILY LESSON ══ -->
@@ -551,8 +554,13 @@ body{
             <div class="fc-ex" id="fc-ex"></div>
           </div>
         </div>
-        <div style="display:flex;justify-content:center;margin:12px 0 14px">
+        <div style="display:flex;justify-content:center;margin:12px 0 10px">
           <button class="snd" onclick="speakFC()">🔊</button>
+        </div>
+        <!-- 翻到背面後顯示 SRS 評分按鈕 -->
+        <div id="fc-srs-btns" style="display:none;gap:8px;margin-bottom:10px">
+          <button class="btn btn-err" onclick="fcNg()" style="flex:1">✗ 還不熟</button>
+          <button class="btn btn-ok" onclick="fcOk()" style="flex:2">✓ 記住了 +5XP</button>
         </div>
         <div style="display:flex;gap:8px">
           <button class="btn btn-o" onclick="prevFC()" style="flex:1">← 上一個</button>
@@ -567,6 +575,7 @@ body{
             <button id="qz-snd" class="snd" style="width:36px;height:36px;font-size:14px;margin:8px auto 0" onclick="tts(S.qWord&&S.qWord.word)">🔊</button>
           </div>
           <div class="qopts" id="qopts"></div>
+          <button id="qz-skip" onclick="skipQz()" style="width:100%;margin-top:10px;padding:10px;background:none;border:1.5px dashed var(--border);border-radius:12px;font-size:14px;color:var(--text-tertiary);cursor:pointer;font-weight:600">💡 不知道，顯示答案</button>
         </div>
         <div id="qfb" style="display:none" class="card"></div>
       </div>
@@ -603,6 +612,13 @@ body{
           <button class="mic" id="mic" onclick="togRec()">🎤</button>
           <div id="mic-st" style="font-size:13px;color:var(--text-tertiary);margin-top:10px">點擊開始錄音</div>
           <div id="rec-res" style="display:none;background:var(--bg-tertiary);border-radius:12px;padding:12px;margin-top:12px;font-size:14px;font-weight:500"></div>
+          <div style="display:flex;gap:8px;margin-top:12px" id="rec-manual">
+            <div style="font-size:12px;color:var(--text-tertiary);width:100%;text-align:center;margin-bottom:4px">或自行評分</div>
+          </div>
+          <div style="display:flex;gap:8px" id="rec-manual-btns">
+            <button class="btn btn-err" style="flex:1;font-size:14px" onclick="manualRec(false)">✗ 沒說好</button>
+            <button class="btn btn-ok" style="flex:1;font-size:14px" onclick="manualRec(true)">✓ 說得好</button>
+          </div>
           <div style="display:flex;gap:8px;margin-top:16px">
             <button class="btn btn-o" onclick="prevSpk()" style="flex:1">← 上一句</button>
             <button class="btn btn-p" onclick="nextSpk()" style="flex:2">下一句 →</button>
@@ -2161,6 +2177,8 @@ function showFC(){
   document.getElementById('fc-b').textContent=srsLbl(w.id);
   document.getElementById('fc-fr').style.display='flex';
   document.getElementById('fc-bk').style.display='none';
+  const srsDiv=document.getElementById('fc-srs-btns');
+  if(srsDiv)srsDiv.style.display='none';
   const st=srsStats();
   document.getElementById('srs-nw').textContent=st.nw;
   document.getElementById('srs-due').textContent=st.due;
@@ -2171,7 +2189,21 @@ function flipFC(){
   S.vcFlipped=!S.vcFlipped;
   document.getElementById('fc-fr').style.display=S.vcFlipped?'none':'flex';
   document.getElementById('fc-bk').style.display=S.vcFlipped?'block':'none';
+  const srsDiv=document.getElementById('fc-srs-btns');
+  if(srsDiv)srsDiv.style.display=S.vcFlipped?'flex':'none';
   if(S.vcFlipped&&S._cw){speakFC();addXP(1);bumpDC();}
+}
+function fcOk(){
+  if(!S._cw)return;
+  srsOk(S._cw.id);addXP(5);bumpDC();checkUnlocks();
+  toast('+5 XP 記住了！','ok');
+  const l=getVL();S.vcIdx=(S.vcIdx+1)%l.length;S.vcFlipped=false;showFC();
+}
+function fcNg(){
+  if(!S._cw)return;
+  srsNg(S._cw.id);
+  toast('已加入複習清單 📌','err');
+  const l=getVL();S.vcIdx=(S.vcIdx+1)%l.length;S.vcFlipped=false;showFC();
 }
 function speakFC(){if(S._cw){tts(S._cw.word);setTimeout(()=>tts(S._cw.ex),950);}}
 function nextFC(){const l=getVL();S.vcIdx=(S.vcIdx+1)%l.length;S.vcFlipped=false;showFC();}
@@ -2221,19 +2253,47 @@ function showQz(){
     document.getElementById('qopts').innerHTML=opts.map(o=>`<button class="qopt" onclick="ansQz(this,${o.id===w.id},'word')" data-ans="${o.word}">${o.word}</button>`).join('');
   }
   document.getElementById('vc-cnt').textContent='答對 +5XP';
+  const sk=document.getElementById('qz-skip');if(sk)sk.style.display='block';
 }
 function ansQz(btn,ok,ansKey){
   if(S.qAns)return;S.qAns=true;
+  const sk=document.getElementById('qz-skip');if(sk)sk.style.display='none';
   document.querySelectorAll('#qopts .qopt').forEach(b=>b.classList.add('off'));
   const w=S.qWord;const correctVal=ansKey==='zh'?w.zh:w.word;
   if(ok){btn.classList.add('ok');srsOk(w.id);addXP(5);bumpDC();S.totalC++;confetti();toast('+5 XP 答對了！','ok');tts(w.word);}
-  else{btn.classList.add('ng');srsNg(w.id);document.querySelectorAll('#qopts .qopt').forEach(b=>{if(b.dataset.ans===correctVal)b.classList.add('ok')});toast('答錯了，記住它！','err');}
+  else{btn.classList.add('ng');srsNg(w.id);document.querySelectorAll('#qopts .qopt').forEach(b=>{if(b.dataset.ans===correctVal)b.classList.add('ok')});toast('答錯了，已加入複習清單 📌','err');}
   S.totalA++;checkUnlocks();save();
   const fb=document.getElementById('qfb');fb.style.display='block';
-  fb.innerHTML=`<div style="font-weight:800;color:${ok?'var(--ok)':'var(--err)'};margin-bottom:5px">${ok?'✓ 正確！':'✗ 答錯了'}</div>
+  fb.innerHTML=`<div style="font-weight:800;color:${ok?'var(--ok)':'var(--err)'};margin-bottom:5px">${ok?'✓ 正確！':'✗ 答錯了 — 已加入複習清單'}</div>
     <div style="font-size:14px;margin-bottom:4px"><b>${w.word}</b> — ${w.zh}</div>
     <div style="font-size:15px;color:var(--text-tertiary)">${w.ex}</div>
     <button class="btn btn-p" style="width:100%;margin-top:12px" onclick="nextQz()">繼續 →</button>`;
+  const st=srsStats();
+  document.getElementById('srs-nw').textContent=st.nw;
+  document.getElementById('srs-due').textContent=st.due;
+  document.getElementById('srs-mas').textContent=st.mas;
+}
+function skipQz(){
+  if(S.qAns)return;S.qAns=true;
+  const sk=document.getElementById('qz-skip');if(sk)sk.style.display='none';
+  const w=S.qWord;
+  // 標記為不熟悉，加入複習清單
+  srsNg(w.id);S.totalA++;checkUnlocks();save();
+  // 高亮正確答案
+  const ansKey=S.qType===0?'zh':'word';
+  const correctVal=ansKey==='zh'?w.zh:w.word;
+  document.querySelectorAll('#qopts .qopt').forEach(b=>{
+    b.classList.add('off');
+    if(b.dataset.ans===correctVal)b.classList.add('ok');
+  });
+  toast('已加入複習清單 📌','err');
+  tts(w.word);
+  const fb=document.getElementById('qfb');fb.style.display='block';
+  fb.innerHTML=`<div style="font-weight:800;color:var(--primary);margin-bottom:5px">💡 正確答案</div>
+    <div style="font-size:14px;margin-bottom:4px"><b>${w.word}</b> — ${w.zh}</div>
+    <div style="font-size:15px;color:var(--text-tertiary);margin-bottom:4px">${w.ex}</div>
+    <div style="font-size:13px;color:var(--text-tertiary);padding:8px 10px;background:var(--bg-secondary);border-radius:10px;margin-bottom:10px">📌 此單字已加入複習清單，稍後會再出現</div>
+    <button class="btn btn-p" style="width:100%" onclick="nextQz()">繼續 →</button>`;
   const st=srsStats();
   document.getElementById('srs-nw').textContent=st.nw;
   document.getElementById('srs-due').textContent=st.due;
@@ -2319,23 +2379,62 @@ function prevSpk(){S.spIdx=(S.spIdx-1+SPEAK.length)%SPEAK.length;renderSpk();}
 function togRec(){if(S.isRec)stopRec();else startRec();}
 function startRec(){
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-  if(!SR){document.getElementById('rec-res').style.display='block';document.getElementById('rec-res').innerHTML='<div style="font-size:15px;color:var(--text-tertiary);margin-bottom:9px">此瀏覽器不支援語音識別（建議用 Chrome）</div><div style="display:flex;gap:8px"><button class="btn btn-err" style="flex:1;font-size:15px" onclick="addXP(1);toast(\'繼續加油！\',\'err\')">✗ 沒說好</button><button class="btn btn-ok" style="flex:1;font-size:15px" onclick="addXP(5);confetti();toast(\'+5XP 說得好！\',\'ok\')">✓ 說得好</button></div>';return;}
+  if(!SR){
+    document.getElementById('mic-st').textContent='此裝置不支援語音辨識';
+    toast('請使用下方按鈕自行評分','err');
+    return;
+  }
   recObj=new SR();recObj.lang='en-US';recObj.continuous=false;recObj.interimResults=true;S.isRec=true;
-  document.getElementById('mic').className='mic rec';document.getElementById('mic-st').textContent='錄音中… 請說英文';
+  document.getElementById('mic').className='mic rec';
+  document.getElementById('mic-st').textContent='錄音中… 請說英文';
+  document.getElementById('rec-res').style.display='none';
+  // 逾時保護：8秒沒有結果就自動停止
+  const _timeout=setTimeout(()=>{if(S.isRec){stopRec();toast('沒有偵測到聲音，請再試一次','err');}},8000);
   recObj.onresult=e=>{
+    clearTimeout(_timeout);
     const tr=Array.from(e.results).map(r=>r[0].transcript).join('');
     document.getElementById('rec-res').style.display='block';
     if(e.results[0].isFinal){
       const sim=simScore(_curSp().en,tr);
-      if(sim>0.55){document.getElementById('rec-res').innerHTML=`<div style="color:var(--ok);font-weight:600">✓ 說得很好！「${tr}」</div>`;addXP(5);confetti();toast('+5 XP 發音棒！','ok');S.mods.s=(S.mods.s||0)+1;S.totalC++;}
-      else{document.getElementById('rec-res').innerHTML=`<div style="color:var(--err);font-weight:600">識別：「${tr}」</div><div style="font-size:14px;color:var(--text-tertiary);margin-top:4px">說慢一點再試一次</div>`;addXP(2);toast('+2 XP 繼續練習！','err');}
+      if(sim>0.55){
+        document.getElementById('rec-res').innerHTML=`<div style="color:var(--ok);font-weight:600">✓ 辨識成功！「${tr}」</div>`;
+        addXP(5);confetti();toast('+5 XP 發音棒！','ok');S.mods.s=(S.mods.s||0)+1;S.totalC++;
+      }else{
+        document.getElementById('rec-res').innerHTML=`<div style="color:var(--err);font-weight:600">辨識結果：「${tr}」</div><div style="font-size:14px;color:var(--text-tertiary);margin-top:4px">說慢一點，或用下方按鈕自評</div>`;
+        addXP(2);toast('+2 XP 繼續練習！','err');
+      }
       S.totalA++;stopRec();save();
-    }else document.getElementById('rec-res').innerHTML=`<div style="color:var(--text-tertiary);font-style:italic">「${tr}…」</div>`;
+    }else{
+      document.getElementById('rec-res').innerHTML=`<div style="color:var(--text-tertiary);font-style:italic">「${tr}…」</div>`;
+    }
   };
-  recObj.onerror=e=>{stopRec();if(e.error==='not-allowed')toast('請允許麥克風權限','err');};
-  recObj.onend=()=>stopRec();recObj.start();
+  recObj.onerror=e=>{
+    clearTimeout(_timeout);
+    stopRec();
+    const msgs={
+      'not-allowed':'請允許麥克風權限後再試',
+      'service-not-allowed':'此裝置不允許語音辨識，請用下方按鈕自評',
+      'network':'網路問題，請用下方按鈕自評',
+      'no-speech':'沒有偵測到聲音，請再試一次',
+      'audio-capture':'找不到麥克風裝置',
+    };
+    toast(msgs[e.error]||`錄音失敗（${e.error}）`,'err');
+    document.getElementById('mic-st').textContent='點擊重試';
+  };
+  recObj.onend=()=>{clearTimeout(_timeout);stopRec();};
+  recObj.start();
 }
-function stopRec(){if(recObj){try{recObj.stop();}catch(e){}recObj=null;}S.isRec=false;const m=document.getElementById('mic');if(m)m.className='mic';document.getElementById('mic-st').textContent='點擊開始錄音';}
+function stopRec(){
+  if(recObj){try{recObj.stop();}catch(e){}recObj=null;}
+  S.isRec=false;
+  const m=document.getElementById('mic');if(m)m.className='mic';
+  document.getElementById('mic-st').textContent='點擊開始錄音';
+}
+function manualRec(ok){
+  if(ok){addXP(5);confetti();toast('+5 XP 說得好！','ok');S.mods.s=(S.mods.s||0)+1;S.totalC++;}
+  else{addXP(1);toast('+1 XP 繼續練習！','err');}
+  S.totalA++;save();
+}
 function simScore(a,b){const w1=a.toLowerCase().replace(/[^a-z\s]/g,'').split(/\s+/),w2=b.toLowerCase().replace(/[^a-z\s]/g,'').split(/\s+/);return w1.filter(w=>w2.includes(w)).length/Math.max(w1.length,w2.length);}
 function renderTr(){if(S.trIdx>=SPEAK.length)S.trIdx=0;const s=_curTr();document.getElementById('tr-zh').textContent=s.zh;document.getElementById('tr-ans').style.display='none';document.getElementById('tr-btn').style.display='block';S.trRev=false;}
 function revTr(){const s=_curTr();document.getElementById('tr-en').textContent=s.en;document.getElementById('tr-ans').style.display='block';document.getElementById('tr-btn').style.display='none';S.trRev=true;addXP(2);bumpDC();tts(s.en,.82);save();}
