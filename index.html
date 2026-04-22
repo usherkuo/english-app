@@ -506,7 +506,7 @@ body{
         </div>
       </div>
       <div style="text-align:center;padding:18px 0 6px;font-size:12px;color:var(--text-tertiary);opacity:.5;letter-spacing:.3px">
-        A1.11_20260422 Beta
+        A0.02_20260422 Beta
       </div>
     </div>
 
@@ -575,7 +575,7 @@ body{
             <button id="qz-snd" class="snd" style="width:36px;height:36px;font-size:14px;margin:8px auto 0" onclick="tts(S.qWord&&S.qWord.word)">🔊</button>
           </div>
           <div class="qopts" id="qopts"></div>
-          <button id="qz-skip" onclick="skipQz()" style="width:100%;margin-top:10px;padding:10px;background:none;border:1.5px dashed var(--border);border-radius:12px;font-size:14px;color:var(--text-tertiary);cursor:pointer;font-weight:600">💡 不知道，顯示答案</button>
+          <button id="qz-skip" onclick="skipQz()" style="width:100%;margin-top:10px;padding:12px;background:var(--bg-secondary);border:none;border-radius:12px;font-size:15px;color:var(--text-secondary);cursor:pointer;font-weight:700;letter-spacing:-.1px">💡 不知道，顯示答案</button>
         </div>
         <div id="qfb" style="display:none" class="card"></div>
       </div>
@@ -687,6 +687,23 @@ body{
         <div class="card-t">語音設定</div>
         <div style="font-size:13px;color:var(--text-tertiary);margin-bottom:10px">點下方確認目前使用的英語聲音。</div>
         <button class="btn btn-p" onclick="listVoices()">檢查目前使用的聲音</button>
+      </div>
+      <div class="card" style="margin-top:10px">
+        <div class="card-t">外觀主題</div>
+        <div style="display:flex;gap:8px;margin-top:10px">
+          <button id="in-th-light" onclick="setTheme('light')" style="flex:1;padding:12px 6px;border-radius:14px;border:2px solid #6366F1;background:rgba(99,102,241,.1);font-size:13px;font-weight:700;color:#6366F1;cursor:pointer;text-align:center;line-height:1.4">
+            <div style="width:26px;height:26px;border-radius:50%;background:#FFFFFF;border:2px solid #6366F1;margin:0 auto 6px"></div>
+            純白
+          </button>
+          <button id="in-th-warm" onclick="setTheme('warm')" style="flex:1;padding:12px 6px;border-radius:14px;border:2px solid rgba(0,0,0,.1);background:transparent;font-size:13px;font-weight:700;color:var(--text-secondary);cursor:pointer;text-align:center;line-height:1.4">
+            <div style="width:26px;height:26px;border-radius:50%;background:#FAF8F5;border:2px solid #D4A96A;margin:0 auto 6px"></div>
+            暖米
+          </button>
+          <button id="in-th-dark" onclick="setTheme('dark')" style="flex:1;padding:12px 6px;border-radius:14px;border:2px solid rgba(0,0,0,.1);background:transparent;font-size:13px;font-weight:700;color:var(--text-secondary);cursor:pointer;text-align:center;line-height:1.4">
+            <div style="width:26px;height:26px;border-radius:50%;background:#0F0F18;border:2px solid #818CF8;margin:0 auto 6px"></div>
+            深夜
+          </button>
+        </div>
       </div>
       <button class="btn" style="width:100%;margin-top:10px;background:rgba(239,68,68,.08);color:var(--err);border:1.5px solid rgba(239,68,68,.15)" onclick="resetAll()">重設全部進度</button>
     </div>
@@ -1916,7 +1933,7 @@ const DEF = {
   lsIdx:0, lsCorrect:0, lsAns:false, lsOrder:null,
   spIdx:0, trIdx:0, trRev:false, spOrder:null, trOrder:null, spTab:'follow',
   totalA:0, totalC:0, mods:{}, isRec:false, qWord:null, qAns:false, qType:0,
-  dlStep:0, dailyXp:0, placementDone:false,
+  dlStep:0, dailyXp:0, placementDone:false, theme:'light',
 };
 function load(){
   try{const d=JSON.parse(localStorage.getItem('ela5'));if(d)S=Object.assign({},DEF,d);}catch(e){}
@@ -2588,11 +2605,13 @@ function applyTweaks(t) {
 
 function setTheme(t) {
   currentTweaks.theme = t;
+  // Persist to app state
+  if(typeof S !== 'undefined'){S.theme=t;if(typeof save==='function')save();}
   const shell = document.getElementById('phoneShell');
   shell.removeAttribute('data-theme');
   if(t==='warm') shell.setAttribute('data-theme','warm');
   else if(t==='dark') shell.setAttribute('data-theme','dark');
-  // Update button states
+  // Update tweaks panel buttons
   ['light','warm','dark'].forEach(id=>{
     const b=document.getElementById('tw-'+id);
     if(!b)return;
@@ -2602,6 +2621,23 @@ function setTheme(t) {
     b.style.border=active?`1.5px solid ${col}`:'1.5px solid rgba(0,0,0,.1)';
     b.style.background=active?`rgba(99,102,241,.1)`:'transparent';
     b.style.color=active?col:'#52525B';
+  });
+  // Update in-app theme buttons
+  const themeColors={'light':'#6366F1','warm':'#7C3AED','dark':'#818CF8'};
+  ['light','warm','dark'].forEach(id=>{
+    const b=document.getElementById('in-th-'+id);
+    if(!b)return;
+    const active=id===t;
+    const col=themeColors[id];
+    if(active){
+      b.style.border=`2px solid ${col}`;
+      b.style.background=`rgba(99,102,241,.1)`;
+      b.style.color=col;
+    } else {
+      b.style.border='2px solid rgba(128,128,128,.2)';
+      b.style.background='transparent';
+      b.style.color='var(--text-secondary)';
+    }
   });
   window.parent.postMessage({type:'__edit_mode_set_keys', edits:{theme:t}},'*');
 }
@@ -2688,7 +2724,8 @@ window.addEventListener('message', e => {
 });
 window.parent.postMessage({type:'__edit_mode_available'},'*');
 
-// Apply saved tweaks on load
+// Apply saved tweaks on load — restore user theme from app state if available
+if(typeof S !== 'undefined' && S.theme) currentTweaks.theme = S.theme;
 applyTweaks(currentTweaks);
 </script>
 </body>
