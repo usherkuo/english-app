@@ -379,12 +379,12 @@ body{
   .phone-shell{border-radius:0;width:100vw;height:100dvh;box-shadow:none;}
   .dynamic-island{display:none;}
   .phone-status,.phone-home-bar{display:none;}
-  .bnav{position:fixed;bottom:0;left:0;right:0;width:100vw;}
+  .bnav{position:fixed;bottom:0;left:0;right:0;width:100vw;padding-bottom:calc(env(safe-area-inset-bottom, 0px) + 4px);}
   /* 移除假狀態列保留的 59px 頂部空間，改用裝置實際安全區域 */
   .sc{padding-top:calc(env(safe-area-inset-top, 0px) + 14px) !important;}
   #sc-home{padding-top:calc(env(safe-area-inset-top, 0px) + 10px) !important;}
   /* 確保底部 padding 足夠讓 nav bar 不遮住內容 */
-  .app{padding-bottom:calc(90px + env(safe-area-inset-bottom));}
+  .app{padding-bottom:calc(72px + env(safe-area-inset-bottom, 0px));}
 }
 </style>
 </head>
@@ -540,6 +540,7 @@ body{
       <div style="display:flex;gap:6px;margin-bottom:12px">
         <button class="tab on" id="tab-fc" onclick="setVM('flash')">單字卡</button>
         <button class="tab" id="tab-qz" onclick="setVM('quiz')">測驗</button>
+        <button class="tab" id="tab-fav" onclick="toggleFavMode()" style="margin-left:auto">⭐ <span id="fav-cnt">0</span></button>
       </div>
       <div id="vm-flash">
         <div class="fcard" id="fcard" onclick="flipFC()">
@@ -554,8 +555,9 @@ body{
             <div class="fc-ex" id="fc-ex"></div>
           </div>
         </div>
-        <div style="display:flex;justify-content:center;margin:12px 0 10px">
+        <div style="display:flex;justify-content:center;gap:12px;margin:12px 0 10px">
           <button class="snd" onclick="speakFC()">🔊</button>
+          <button class="snd snd-dark" id="fc-fav" onclick="toggleFav(S._cw&&S._cw.id)" style="font-size:20px;line-height:1">☆</button>
         </div>
         <!-- 翻到背面後顯示 SRS 評分按鈕 -->
         <div id="fc-srs-btns" style="display:none;gap:8px;margin-bottom:10px">
@@ -575,6 +577,13 @@ body{
             <button id="qz-snd" class="snd" style="width:36px;height:36px;font-size:14px;margin:8px auto 0" onclick="tts(S.qWord&&S.qWord.word)">🔊</button>
           </div>
           <div class="qopts" id="qopts"></div>
+          <div id="qz-spell" style="display:none;margin-top:4px">
+            <input type="text" id="qz-input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+              placeholder="輸入英文單字..."
+              style="width:100%;padding:13px 14px;border:2px solid var(--border);border-radius:12px;font-size:18px;font-weight:700;background:var(--bg-secondary);color:var(--text-primary);outline:none;box-sizing:border-box;letter-spacing:.5px"
+              onkeydown="if(event.key==='Enter')submitSpell()">
+            <button class="btn btn-p" style="width:100%;margin-top:10px" onclick="submitSpell()">確認答案 →</button>
+          </div>
           <button id="qz-skip" onclick="skipQz()" style="width:100%;margin-top:10px;padding:12px;background:var(--bg-secondary);border:none;border-radius:12px;font-size:15px;color:var(--text-secondary);cursor:pointer;font-weight:700;letter-spacing:-.1px">💡 不知道，顯示答案</button>
         </div>
         <div id="qfb" style="display:none" class="card"></div>
@@ -674,6 +683,11 @@ body{
           <div class="srs-chip"><div class="srs-n" id="pg-due" style="color:var(--og)">0</div><div class="srs-l">待複習</div></div>
           <div class="srs-chip"><div class="srs-n" id="pg-mas" style="color:var(--ok)">0</div><div class="srs-l">已熟悉</div></div>
         </div>
+      </div>
+      <div class="card" id="pg-weak-card" style="margin-top:10px;display:none">
+        <div class="card-t">⚠️ 我的弱點單字</div>
+        <div style="font-size:13px;color:var(--text-tertiary);margin-bottom:10px">答錯 2 次以上，需要加強</div>
+        <div id="pg-weak-list"></div>
       </div>
       <div class="card">
         <div class="card-t">里程碑</div>
@@ -1933,7 +1947,7 @@ const DEF = {
   lsIdx:0, lsCorrect:0, lsAns:false, lsOrder:null,
   spIdx:0, trIdx:0, trRev:false, spOrder:null, trOrder:null, spTab:'follow',
   totalA:0, totalC:0, mods:{}, isRec:false, qWord:null, qAns:false, qType:0,
-  dlStep:0, dailyXp:0, placementDone:false, theme:'light',
+  dlStep:0, dailyXp:0, placementDone:false, theme:'light', fav:{}, vcFav:false,
 };
 function load(){
   try{const d=JSON.parse(localStorage.getItem('ela5'));if(d)S=Object.assign({},DEF,d);}catch(e){}
@@ -1961,8 +1975,8 @@ function srsLbl(id){const b=sg(id).box;return b===0?'新':b<=2?'學習中':b<=3?
 function srsStats(){
   const all=VOCAB;
   return {
-    nw:all.filter(v=>sg(v.id).box===0&&sg(v.id).seen===0).length,
-    due:all.filter(v=>sg(v.id).box>0&&srsDue(v.id)).length,
+    nw:all.filter(v=>sg(v.id).seen===0).length,
+    due:all.filter(v=>sg(v.id).seen>0&&!srsMas(v.id)).length,
     mas:all.filter(v=>srsMas(v.id)).length
   };
 }
@@ -2139,7 +2153,10 @@ function renderLsnDone(){
 }
 
 // ── VOCAB ──
-function getVL(){return VOCAB.filter(v=>v.lv===S.vcLv);}
+function getVL(){
+  if(S.vcFav){const f=VOCAB.filter(v=>S.fav&&S.fav[v.id]);return f.length?f:VOCAB.filter(v=>v.lv===S.vcLv);}
+  return VOCAB.filter(v=>v.lv===S.vcLv);
+}
 function initVocab(){
   document.getElementById('lv-tabs').innerHTML=[1,2,3,4].map(lv=>{
     const ul=S.unlockedLevels[lv];
@@ -2149,8 +2166,12 @@ function initVocab(){
   document.getElementById('srs-nw').textContent=st.nw;
   document.getElementById('srs-due').textContent=st.due;
   document.getElementById('srs-mas').textContent=st.mas;
+  const favCount=Object.keys(S.fav||{}).length;
+  const fcEl=document.getElementById('fav-cnt');if(fcEl)fcEl.textContent=favCount;
+  const tabFav=document.getElementById('tab-fav');
+  if(tabFav)tabFav.classList.toggle('on',!!S.vcFav);
   const ov=document.getElementById('lock-ov2');if(ov)ov.remove();
-  if(!S.unlockedLevels[S.vcLv]){showLockOv();return;}
+  if(!S.vcFav&&!S.unlockedLevels[S.vcLv]){showLockOv();return;}
   setVM(S.vcMode,true);
 }
 function showLockOv(){
@@ -2201,6 +2222,7 @@ function showFC(){
   document.getElementById('srs-due').textContent=st.due;
   document.getElementById('srs-mas').textContent=st.mas;
   document.getElementById('vc-cnt').textContent=`${S.vcIdx+1}/${src.length}`;
+  const fb=document.getElementById('fc-fav');if(fb){fb.textContent=S.fav&&S.fav[w.id]?'★':'☆';fb.style.color=S.fav&&S.fav[w.id]?'#F59E0B':'var(--text-tertiary)';}
 }
 function flipFC(){
   S.vcFlipped=!S.vcFlipped;
@@ -2245,8 +2267,10 @@ function showQz(){
   const list=getVL();if(list.length<4){document.getElementById('vm-quiz').innerHTML='<div style="text-align:center;padding:30px;color:var(--text-tertiary);font-weight:600">此等級單字不足 4 個</div>';return;}
   const due=list.filter(v=>srsDue(v.id));
   S.qWord=(due.length>0?due:list)[Math.floor(Math.random()*(due.length||list.length))];
-  S.qAns=false;S.qType=Math.floor(Math.random()*3);
+  S.qAns=false;S.qType=Math.floor(Math.random()*4);
   document.getElementById('qfb').style.display='none';
+  document.getElementById('qz-spell').style.display='none';
+  document.getElementById('qopts').style.display='';
   const pool=list.filter(v=>v.id!==S.qWord.id).sort(()=>Math.random()-.5).slice(0,3);
   const w=S.qWord;
   const sndBtn=document.getElementById('qz-snd');
@@ -2261,13 +2285,21 @@ function showQz(){
     qzW.style.fontSize='28px';qzW.innerHTML=w.zh;sndBtn.style.display='none';
     const opts=[...pool,w].sort(()=>Math.random()-.5);
     document.getElementById('qopts').innerHTML=opts.map(o=>`<button class="qopt" onclick="ansQz(this,${o.id===w.id},'word')" data-ans="${o.word}">${o.word}</button>`).join('');
-  } else {
+  } else if(S.qType===2) {
     document.getElementById('qz-prompt').textContent='選出正確的單字填入空格';
     const blank=w.ex.replace(new RegExp('\\b'+w.word+'\\b','i'),'_____');
     qzW.style.fontSize='16px';qzW.innerHTML=`<span style="line-height:1.7;color:var(--text-primary)">${blank}</span><br><span style="font-size:14px;color:var(--text-tertiary)">${w.exZh}</span>`;
     sndBtn.style.display='none';
     const opts=[...pool,w].sort(()=>Math.random()-.5);
     document.getElementById('qopts').innerHTML=opts.map(o=>`<button class="qopt" onclick="ansQz(this,${o.id===w.id},'word')" data-ans="${o.word}">${o.word}</button>`).join('');
+  } else {
+    // Type 3: 看中文，拼出英文
+    document.getElementById('qz-prompt').textContent='看中文，拼出這個英文單字';
+    qzW.style.fontSize='26px';qzW.innerHTML=`<span style="color:var(--text-primary)">${w.zh}</span>`;
+    sndBtn.style.display='none';
+    document.getElementById('qopts').style.display='none';
+    document.getElementById('qz-spell').style.display='block';
+    setTimeout(()=>{const inp=document.getElementById('qz-input');if(inp){inp.value='';inp.focus();}},100);
   }
   document.getElementById('vc-cnt').textContent='答對 +5XP';
   const sk=document.getElementById('qz-skip');if(sk)sk.style.display='block';
@@ -2275,14 +2307,19 @@ function showQz(){
 function ansQz(btn,ok,ansKey){
   if(S.qAns)return;S.qAns=true;
   const sk=document.getElementById('qz-skip');if(sk)sk.style.display='none';
-  document.querySelectorAll('#qopts .qopt').forEach(b=>b.classList.add('off'));
+  document.getElementById('qz-spell').style.display='none';
+  if(btn){document.querySelectorAll('#qopts .qopt').forEach(b=>b.classList.add('off'));}
   const w=S.qWord;const correctVal=ansKey==='zh'?w.zh:w.word;
-  if(ok){btn.classList.add('ok');srsOk(w.id);addXP(5);bumpDC();S.totalC++;confetti();toast('+5 XP 答對了！','ok');tts(w.word);}
-  else{btn.classList.add('ng');srsNg(w.id);document.querySelectorAll('#qopts .qopt').forEach(b=>{if(b.dataset.ans===correctVal)b.classList.add('ok')});toast('答錯了，已加入複習清單 📌','err');}
+  if(ok){if(btn)btn.classList.add('ok');srsOk(w.id);addXP(5);bumpDC();S.totalC++;confetti();toast('+5 XP 答對了！','ok');tts(w.word);}
+  else{if(btn){btn.classList.add('ng');document.querySelectorAll('#qopts .qopt').forEach(b=>{if(b.dataset.ans===correctVal)b.classList.add('ok')});}srsNg(w.id);toast('答錯了，已加入複習清單 📌','err');}
   S.totalA++;checkUnlocks();save();
   const fb=document.getElementById('qfb');fb.style.display='block';
+  const isFav=S.fav&&S.fav[w.id];
   fb.innerHTML=`<div style="font-weight:800;color:${ok?'var(--ok)':'var(--err)'};margin-bottom:5px">${ok?'✓ 正確！':'✗ 答錯了 — 已加入複習清單'}</div>
-    <div style="font-size:14px;margin-bottom:4px"><b>${w.word}</b> — ${w.zh}</div>
+    <div style="font-size:14px;margin-bottom:4px;display:flex;justify-content:space-between;align-items:center">
+      <span><b>${w.word}</b> — ${w.zh}</span>
+      <button onclick="toggleFav(${w.id})" id="qfb-fav" style="background:none;border:none;font-size:20px;cursor:pointer;color:${isFav?'#F59E0B':'var(--text-tertiary)'};padding:2px 4px">${isFav?'★':'☆'}</button>
+    </div>
     <div style="font-size:15px;color:var(--text-tertiary)">${w.ex}</div>
     <button class="btn btn-p" style="width:100%;margin-top:12px" onclick="nextQz()">繼續 →</button>`;
   const st=srsStats();
@@ -2306,8 +2343,12 @@ function skipQz(){
   toast('已加入複習清單 📌','err');
   tts(w.word);
   const fb=document.getElementById('qfb');fb.style.display='block';
+  const isFavS=S.fav&&S.fav[w.id];
   fb.innerHTML=`<div style="font-weight:800;color:var(--primary);margin-bottom:5px">💡 正確答案</div>
-    <div style="font-size:14px;margin-bottom:4px"><b>${w.word}</b> — ${w.zh}</div>
+    <div style="font-size:14px;margin-bottom:4px;display:flex;justify-content:space-between;align-items:center">
+      <span><b>${w.word}</b> — ${w.zh}</span>
+      <button onclick="toggleFav(${w.id})" id="qfb-fav" style="background:none;border:none;font-size:20px;cursor:pointer;color:${isFavS?'#F59E0B':'var(--text-tertiary)'};padding:2px 4px">${isFavS?'★':'☆'}</button>
+    </div>
     <div style="font-size:15px;color:var(--text-tertiary);margin-bottom:4px">${w.ex}</div>
     <div style="font-size:13px;color:var(--text-tertiary);padding:8px 10px;background:var(--bg-secondary);border-radius:10px;margin-bottom:10px">📌 此單字已加入複習清單，稍後會再出現</div>
     <button class="btn btn-p" style="width:100%" onclick="nextQz()">繼續 →</button>`;
@@ -2482,8 +2523,67 @@ function initProgress(){
     <div class="pg-row"><span>📚 單字學習</span><span class="pg-val">${seen} 個</span></div>
     <div class="pg-row"><span>🎧 聽力練習</span><span class="pg-val">${S.mods.l||0} 題</span></div>
     <div class="pg-row" style="border:none"><span>🎤 口說練習</span><span class="pg-val">${S.mods.s||0} 次</span></div>`;
+  // 難字清單
+  const weak=VOCAB.filter(v=>{const d=sg(v.id);return d.seen>0&&(d.seen-d.correct)>=2;})
+    .sort((a,b)=>{const da=sg(a.id),db=sg(b.id);return (db.seen-db.correct)-(da.seen-da.correct);})
+    .slice(0,10);
+  const wc=document.getElementById('pg-weak-card');
+  if(wc){
+    if(weak.length>0){
+      wc.style.display='block';
+      document.getElementById('pg-weak-list').innerHTML=weak.map(v=>{
+        const d=sg(v.id);const wrong=d.seen-d.correct;
+        return `<div class="pg-row" style="${v===weak[weak.length-1]?'border:none':''}">
+          <span style="font-weight:700">${v.word}</span>
+          <span style="color:var(--text-tertiary);font-size:13px">${v.zh}</span>
+          <span style="color:var(--err);font-size:13px;font-weight:700;min-width:40px;text-align:right">✗ ${wrong}</span>
+        </div>`;
+      }).join('');
+    } else {
+      wc.style.display='none';
+    }
+  }
 }
 function resetAll(){if(!confirm('確定要重設全部進度嗎？'))return;localStorage.removeItem('ela5');location.reload();}
+
+// ── 收藏 ──
+function toggleFav(id){
+  if(!id)return;
+  if(!S.fav)S.fav={};
+  if(S.fav[id]){delete S.fav[id];toast('已取消收藏','');}
+  else{S.fav[id]=true;toast('★ 已加入收藏','ok');}
+  save();
+  // 更新單字卡按鈕
+  const fb=document.getElementById('fc-fav');
+  if(fb&&S._cw&&S._cw.id===id){fb.textContent=S.fav[id]?'★':'☆';fb.style.color=S.fav[id]?'#F59E0B':'var(--text-tertiary)';}
+  // 更新測驗回饋按鈕
+  const qb=document.getElementById('qfb-fav');
+  if(qb){qb.textContent=S.fav[id]?'★':'☆';qb.style.color=S.fav[id]?'#F59E0B':'var(--text-tertiary)';}
+  // 更新收藏計數
+  const fc=document.getElementById('fav-cnt');if(fc)fc.textContent=Object.keys(S.fav||{}).length;
+}
+function toggleFavMode(){
+  S.vcFav=!S.vcFav;save();
+  const tb=document.getElementById('tab-fav');if(tb)tb.classList.toggle('on',S.vcFav);
+  if(S.vcFav&&Object.keys(S.fav||{}).length===0){toast('尚無收藏單字，請先按 ☆ 收藏','');S.vcFav=false;if(tb)tb.classList.remove('on');return;}
+  S.vcIdx=0;setVM(S.vcMode,true);
+}
+
+// ── 拼字題型 ──
+function submitSpell(){
+  const inp=document.getElementById('qz-input');
+  if(!inp||!S.qWord)return;
+  const val=inp.value.trim();
+  if(!val)return;
+  const correct=S.qWord.word.toLowerCase();
+  const ok=val.toLowerCase()===correct;
+  if(!ok){
+    // 允許最多 1 個錯字（Levenshtein 1）
+    function lev(a,b){const m=a.length,n=b.length;const d=Array.from({length:m+1},(_,i)=>Array.from({length:n+1},(_,j)=>i?j?0:i:j));for(let i=1;i<=m;i++)for(let j=1;j<=n;j++)d[i][j]=a[i-1]===b[j-1]?d[i-1][j-1]:1+Math.min(d[i-1][j],d[i][j-1],d[i-1][j-1]);return d[m][n];}
+    if(lev(val.toLowerCase(),correct)===1){ansQz(null,true,'word');return;}
+  }
+  ansQz(null,ok,'word');
+}
 
 // ── UTILS ──
 function addXP(n){S.xp+=n;document.getElementById('h-xp').textContent=S.xp;document.getElementById('h-lv').textContent='Lv. '+(Math.floor(S.xp/100)+1);save();}
