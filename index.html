@@ -380,7 +380,11 @@ body{
   .dynamic-island{display:none;}
   .phone-status,.phone-home-bar{display:none;}
   .bnav{position:fixed;bottom:0;left:0;right:0;width:100vw;}
-  .app{padding-bottom:calc(83px + env(safe-area-inset-bottom));}
+  /* 移除假狀態列保留的 59px 頂部空間，改用裝置實際安全區域 */
+  .sc{padding-top:calc(env(safe-area-inset-top, 0px) + 14px) !important;}
+  #sc-home{padding-top:calc(env(safe-area-inset-top, 0px) + 10px) !important;}
+  /* 確保底部 padding 足夠讓 nav bar 不遮住內容 */
+  .app{padding-bottom:calc(90px + env(safe-area-inset-bottom));}
 }
 </style>
 </head>
