@@ -374,7 +374,14 @@ body{
 
 /* ═══════════ OUTER STAGE (desktop centering) ═══════════ */
 .outer{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;background:#111;}
-@media(max-width:460px){.outer{padding:0;background:var(--bg-primary)}.phone-shell{border-radius:0;width:100vw;height:100dvh;box-shadow:none;}.dynamic-island{display:none;}.phone-status,.phone-home-bar{display:none;}}
+@media(max-width:460px){
+  .outer{padding:0;background:var(--bg-primary)}
+  .phone-shell{border-radius:0;width:100vw;height:100dvh;box-shadow:none;}
+  .dynamic-island{display:none;}
+  .phone-status,.phone-home-bar{display:none;}
+  .bnav{position:fixed;bottom:0;left:0;right:0;width:100vw;}
+  .app{padding-bottom:calc(83px + env(safe-area-inset-bottom));}
+}
 </style>
 </head>
 <body>
